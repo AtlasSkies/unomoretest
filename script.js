@@ -1,15 +1,13 @@
 let radar1, radar2;
 let radar2Ready = false;
-let chartColor = 'rgb(135, 71, 230)'; // 💜 Default ability color
+let chartColor = 'rgb(135, 71, 230)';
 
 const CHART1_CENTER = { x: 247, y: 250 };
 const CHART_SCALE_FACTOR = 0.55;
 const CHART_SIZE_MULTIPLIER = 1.0;
 
 function hexToRGBA(hex, alpha) {
-  if (hex.startsWith('rgb')) {
-    return hex.replace(')', `, ${alpha})`).replace('rgb', 'rgba');
-  }
+  if (hex.startsWith('rgb')) return hex.replace(')', `, ${alpha})`).replace('rgb', 'rgba');
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
@@ -96,7 +94,7 @@ const radarBackgroundPlugin = {
   }
 };
 
-/* === OUTLINED AXIS TITLES === */
+/* === OUTLINED LABELS === */
 const outlinedLabelsPlugin = {
   id: 'outlinedLabels',
   afterDraw(chart) {
@@ -104,7 +102,6 @@ const outlinedLabelsPlugin = {
     const r = chart.scales.r;
     const labels = chart.data.labels;
     const cx = r.xCenter, cy = r.yCenter;
-
     const isOverlayChart = chart.canvas.id === 'radarChart2';
     let baseRadius = r.drawingArea * 1.1;
 
@@ -124,18 +121,12 @@ const outlinedLabelsPlugin = {
     labels.forEach((label, i) => {
       let angle = base + (i * 2 * Math.PI / labels.length);
       let radiusToUse = baseRadius;
-
-      if (isOverlayChart && (i === speedIndex || i === defenseIndex)) {
-        radiusToUse = extendedRadius;
-      }
-
+      if (isOverlayChart && (i === speedIndex || i === defenseIndex)) radiusToUse = extendedRadius;
       const x = cx + radiusToUse * Math.cos(angle);
       let y = cy + radiusToUse * Math.sin(angle);
-
       if (i === 0) y -= 5;
       if (isOverlayChart && i === 1) y -= 60;
       if (isOverlayChart && i === 4) y -= 40;
-
       ctx.strokeText(label, x, y);
       ctx.fillText(label, x, y);
     });
@@ -143,7 +134,7 @@ const outlinedLabelsPlugin = {
   }
 };
 
-/* === NUMERIC VALUES === */
+/* === NUMERIC LABELS === */
 const inputValuePlugin = {
   id: 'inputValuePlugin',
   afterDraw(chart) {
@@ -156,35 +147,27 @@ const inputValuePlugin = {
     const baseRadius = r.drawingArea * 1.1;
     const base = -Math.PI / 2;
     const offset = 20;
-
     ctx.save();
     ctx.font = '15px Candara';
     ctx.fillStyle = 'black';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-
     labels.forEach((label, i) => {
       const angle = base + (i * 2 * Math.PI / labels.length);
       let radiusToUse = baseRadius;
-
-      if (chart.canvas.id === 'radarChart2' && (i === 1 || i === 4)) {
-        radiusToUse = r.drawingArea * 1.15;
-      }
-
+      if (chart.canvas.id === 'radarChart2' && (i === 1 || i === 4)) radiusToUse = r.drawingArea * 1.15;
       const x = cx + (radiusToUse + offset) * Math.cos(angle);
       let y = cy + (radiusToUse + offset) * Math.sin(angle);
-
       if (i === 0) y -= 20;
       if (i === 1) y += 20;
       if (i === 4) y += 20;
-
       ctx.fillText(`(${data[i] || 0})`, x, y);
     });
     ctx.restore();
   }
 };
 
-/* === CREATE RADAR === */
+/* === CHART CREATOR === */
 function makeRadar(ctx, showPoints = true, withBackground = false, fixedCenter = null) {
   return new Chart(ctx, {
     type: 'radar',
@@ -252,7 +235,7 @@ window.addEventListener('load', () => {
   updateCharts();
 });
 
-/* === UPDATE CHARTS === */
+/* === UPDATE === */
 function updateCharts() {
   const vals = [
     +powerInput.value || 0,
@@ -261,10 +244,8 @@ function updateCharts() {
     +recoveryInput.value || 0,
     +defenseInput.value || 0
   ];
-
   const maxVal = Math.max(...vals, 10);
   radar1.options.scales.r.suggestedMax = maxVal;
-
   const capped = vals.map(v => Math.min(v, 10));
   chartColor = colorPicker.value || chartColor;
   const fill = hexToRGBA(chartColor, 0.65);
@@ -299,7 +280,7 @@ imgInput.addEventListener('change', e => {
   reader.readAsDataURL(file);
 });
 
-/* === OVERLAY (View Character Chart) === */
+/* === OVERLAY === */
 viewBtn.addEventListener('click', () => {
   overlay.classList.remove('hidden');
   overlayImg.src = uploadedImg.src;
@@ -351,34 +332,36 @@ viewBtn.addEventListener('click', () => {
 
 closeBtn.addEventListener('click', () => overlay.classList.add('hidden'));
 
-/* === FIXED DOWNLOAD CHARACTER CHART (FULL CAPTURE) === */
+/* === ALWAYS DOWNLOAD HORIZONTAL LAYOUT === */
 downloadBtn.addEventListener('click', () => {
   downloadBtn.style.visibility = 'hidden';
   closeBtn.style.visibility = 'hidden';
 
-  const characterBox = document.getElementById('characterBox');
-  const originalScroll = characterBox.scrollTop;
-  const originalOverflow = characterBox.style.overflow;
+  const box = document.getElementById('characterBox');
 
-  // Expand full content
-  characterBox.style.overflow = 'visible';
-  characterBox.scrollTop = 0;
+  // Temporarily disable mobile layout
+  const originalFlex = box.style.flexDirection;
+  const originalWidth = box.style.width;
+  const originalHeight = box.style.height;
 
-  html2canvas(characterBox, {
-    scale: 2,
-    windowWidth: characterBox.scrollWidth,
-    windowHeight: characterBox.scrollHeight,
-    scrollX: 0,
-    scrollY: -window.scrollY,
-  }).then(canvas => {
+  box.style.flexDirection = 'row';
+  box.style.width = '52vw';
+  box.style.height = '64vh';
+  box.style.maxHeight = 'none';
+  box.style.overflow = 'visible';
+
+  html2canvas(box, { scale: 2 }).then(canvas => {
     const link = document.createElement('a');
     const cleanName = (nameInput.value || 'Unnamed').replace(/\s+/g, '_');
     link.download = `${cleanName}_CharacterChart.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
 
-    characterBox.style.overflow = originalOverflow;
-    characterBox.scrollTop = originalScroll;
+    // Restore original styles
+    box.style.flexDirection = originalFlex;
+    box.style.width = originalWidth;
+    box.style.height = originalHeight;
+
     downloadBtn.style.visibility = 'visible';
     closeBtn.style.visibility = 'visible';
   });
