@@ -129,8 +129,8 @@ const outlinedLabelsPlugin = {
       // Power up slightly
       if (i === 0) y -= 5;
 
-      // Defense aligned at same height, Speed removed to align with Defense
-      if (isOverlayChart && (i === defenseIndex)) y -= 50;
+      // Speed and Defense aligned at same height (restoring original code)
+      if (isOverlayChart && (i === speedIndex || i === defenseIndex)) y -= 50;
 
       ctx.strokeText(label, x, y);
       ctx.fillText(label, x, y);
@@ -164,8 +164,14 @@ const inputValuePlugin = {
       const x = cx + (radiusToUse + offset) * Math.cos(angle);
       let y = cy + (radiusToUse + offset) * Math.sin(angle);
       if (i === 0) y -= 20;
-      // Removed if (i === 1) y += 20;
-      if (i === 4) y += 20;
+      // Restoring logic for numeric labels to align with the text labels
+      if (chart.canvas.id === 'radarChart2') {
+        if (i === 1) y -= 30; // Custom offset to match the text's elevated height
+        if (i === 4) y -= 30; // Custom offset to match the text's elevated height
+      } else {
+        if (i === 1) y += 20;
+        if (i === 4) y += 20;
+      }
       ctx.fillText(`(${data[i] || 0})`, x, y);
     });
     ctx.restore();
