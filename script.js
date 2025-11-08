@@ -3,7 +3,7 @@ let radar2Ready = false;
 let chartColor = 'rgb(135, 71, 230)';
 
 const CHART1_CENTER = { x: 247, y: 250 };
-const CHART_SCALE_FACTOR = 0.55;
+const CHART_SCALE_FACTOR = 1.0; // reset to 1.0 to prevent shrinking
 const CHART_SIZE_MULTIPLIER = 1.0;
 
 function hexToRGBA(hex, alpha) {
@@ -25,7 +25,7 @@ const fixedCenterPlugin = {
       r.xCenter = opt.centerX;
       r.yCenter = opt.centerY;
     }
-    r.drawingArea *= CHART_SCALE_FACTOR;
+    // don't multiply drawing area again or chart disappears
   }
 };
 
@@ -65,7 +65,6 @@ const radarBackgroundPlugin = {
     const N = chart.data.labels.length, start = -Math.PI / 2;
 
     ctx.save();
-    // spokes
     ctx.beginPath();
     for (let i = 0; i < N; i++) {
       const a = start + (i * 2 * Math.PI / N);
@@ -78,7 +77,6 @@ const radarBackgroundPlugin = {
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    // outer border
     ctx.beginPath();
     for (let i = 0; i < N; i++) {
       const a = start + (i * 2 * Math.PI / N);
@@ -94,7 +92,7 @@ const radarBackgroundPlugin = {
   }
 };
 
-/* === OUTLINED LABELS === */
+/* === OUTLINED LABELS (Speed & Defense Averaged) === */
 const outlinedLabelsPlugin = {
   id: 'outlinedLabels',
   afterDraw(chart) {
@@ -103,10 +101,7 @@ const outlinedLabelsPlugin = {
     const labels = chart.data.labels;
     const cx = r.xCenter, cy = r.yCenter;
     const isOverlayChart = chart.canvas.id === 'radarChart2';
-    let baseRadius = r.drawingArea * 1.1;
-
-    const speedIndex = 1;
-    const defenseIndex = 4;
+    const baseRadius = r.drawingArea * 1.1;
     const extendedRadius = r.drawingArea * 1.15;
     const base = -Math.PI / 2;
 
@@ -121,12 +116,13 @@ const outlinedLabelsPlugin = {
     labels.forEach((label, i) => {
       let angle = base + (i * 2 * Math.PI / labels.length);
       let radiusToUse = baseRadius;
-      if (isOverlayChart && (i === speedIndex || i === defenseIndex)) radiusToUse = extendedRadius;
+      if (isOverlayChart && (i === 1 || i === 4)) radiusToUse = extendedRadius;
       const x = cx + radiusToUse * Math.cos(angle);
       let y = cy + radiusToUse * Math.sin(angle);
+
       if (i === 0) y -= 5;
-      if (isOverlayChart && i === 1) y -= 60;
-      if (isOverlayChart && i === 4) y -= 40;
+      if (isOverlayChart && (i === 1 || i === 4)) y -= 48; // averaged offset
+
       ctx.strokeText(label, x, y);
       ctx.fillText(label, x, y);
     });
@@ -134,7 +130,7 @@ const outlinedLabelsPlugin = {
   }
 };
 
-/* === NUMERIC LABELS === */
+/* === NUMERIC LABELS (Speed & Defense Averaged) === */
 const inputValuePlugin = {
   id: 'inputValuePlugin',
   afterDraw(chart) {
@@ -152,15 +148,21 @@ const inputValuePlugin = {
     ctx.fillStyle = 'black';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
+
     labels.forEach((label, i) => {
       const angle = base + (i * 2 * Math.PI / labels.length);
       let radiusToUse = baseRadius;
       if (chart.canvas.id === 'radarChart2' && (i === 1 || i === 4)) radiusToUse = r.drawingArea * 1.15;
       const x = cx + (radiusToUse + offset) * Math.cos(angle);
       let y = cy + (radiusToUse + offset) * Math.sin(angle);
+
       if (i === 0) y -= 20;
-      if (i === 1) y += 20;
-      if (i === 4) y += 20;
+      if (chart.canvas.id === 'radarChart2') {
+        if (i === 1 || i === 4) y -= 28; // averaged numeric offset
+      } else {
+        if (i === 1) y += 20;
+        if (i === 4) y += 20;
+      }
       ctx.fillText(`(${data[i] || 0})`, x, y);
     });
     ctx.restore();
@@ -338,8 +340,6 @@ downloadBtn.addEventListener('click', () => {
   closeBtn.style.visibility = 'hidden';
 
   const box = document.getElementById('characterBox');
-
-  // Temporarily disable mobile layout
   const originalFlex = box.style.flexDirection;
   const originalWidth = box.style.width;
   const originalHeight = box.style.height;
@@ -357,7 +357,6 @@ downloadBtn.addEventListener('click', () => {
     link.href = canvas.toDataURL('image/png');
     link.click();
 
-    // Restore original styles
     box.style.flexDirection = originalFlex;
     box.style.width = originalWidth;
     box.style.height = originalHeight;
