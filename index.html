@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>UnOrdinary Ability Chart Maker</title>
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 
@@ -20,11 +20,7 @@
       </div>
 
       <input type="file" accept="image/*" id="imgInput">
-      <div class="image-wrap">
-        <img id="uploadedImg" class="upload-img" alt="Uploaded Image">
-        <!-- Watermark overlays imported image -->
-        <div class="img-watermark">AS</div>
-      </div>
+      <img id="uploadedImg" class="upload-img" alt="Uploaded Image">
 
       <div class="info-box">
         <label><b>Name:</b> <input type="text" id="nameInput"></label>
@@ -40,11 +36,7 @@
         <label>Defense: <input type="number" id="defenseInput" step="0.1" min="0"></label>
         <label>Ability Color: <input type="color" id="colorPicker" value="#92dfec"></label>
 
-        <div class="button-row">
-          <button id="multiColorBtn">Multi-color</button>
-          <button id="viewBtn">View Character Chart</button>
-        </div>
-
+        <button id="multiColorBtn">Multi-color</button>
         <div id="axisColors">
           <label>Power Color: <input type="color" id="powerColor" value="#92dfec"></label>
           <label>Speed Color: <input type="color" id="speedColor" value="#92dfec"></label>
@@ -53,10 +45,9 @@
           <label>Defense Color: <input type="color" id="defenseColor" value="#92dfec"></label>
         </div>
 
-        <div class="button-row">
-          <button id="addChartBtn">+ Add Chart</button>
-          <div id="chartButtons" class="chart-buttons"></div>
-        </div>
+        <button id="addChartBtn">Add Chart</button>
+        <div id="chartButtons"></div>
+        <button id="viewBtn">View Character Chart</button>
       </div>
     </div>
 
@@ -71,7 +62,6 @@
       <div class="image-section">
         <div class="overlay-img-wrap">
           <img id="overlayImg" class="overlay-img" alt="Character Image">
-          <!-- Watermark overlays POPUP image too -->
           <div class="img-watermark">AS</div>
         </div>
         <div class="text-box">
