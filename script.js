@@ -1,9 +1,11 @@
-let charts = []; // All radar charts
-let activeChart = 0; // Index of currently selected chart
-let multiColorMode = false;
+let charts = []; // all chart objects
+let activeChart = 0;
 let radar2, radar2Ready = false;
-let chartColor = "#92dfec";
+let multiColorMode = false;
 
+/* =======================
+   HELPERS
+======================= */
 function hexToRGBA(hex, alpha) {
   if (!hex) hex = "#92dfec";
   if (hex.startsWith("rgb")) return hex.replace(")", `, ${alpha})`).replace("rgb", "rgba");
@@ -23,20 +25,19 @@ function makeConicGradient(chart, axisColors, alpha = 0.65) {
   return grad;
 }
 
-function computeFill(chart, abilityHex, axisPickers) {
-  if (!multiColorMode) return hexToRGBA(abilityHex, 0.45);
-  const cols = axisPickers.map(p => p.value || abilityHex);
-  return makeConicGradient(chart, cols, 0.45);
+function computeFill(chart, abilityHex, axisColors, isMulti) {
+  if (!isMulti) return hexToRGBA(abilityHex, 0.45);
+  return makeConicGradient(chart, axisColors, 0.45);
 }
 
-function makeRadar(ctx, color, data = [0, 0, 0, 0, 0]) {
+function makeRadar(ctx, color, data = [0, 0, 0, 0, 0], axisColors, isMulti) {
   return new Chart(ctx, {
     type: "radar",
     data: {
       labels: ["Power", "Speed", "Trick", "Recovery", "Defense"],
       datasets: [{
         data,
-        backgroundColor: hexToRGBA(color, 0.35),
+        backgroundColor: computeFill({ ctx, scales: { r: { xCenter: 250, yCenter: 250 } } }, color, axisColors, isMulti),
         borderColor: color,
         borderWidth: 2,
         pointBackgroundColor: "#fff",
@@ -62,7 +63,9 @@ function makeRadar(ctx, color, data = [0, 0, 0, 0, 0]) {
   });
 }
 
-/* === DOM ELEMENTS === */
+/* =======================
+   DOM ELEMENTS
+======================= */
 const chartArea = document.getElementById("chartArea");
 const addChartBtn = document.getElementById("addChartBtn");
 const chartButtonsDiv = document.getElementById("chartButtons");
@@ -95,11 +98,27 @@ const nameInput = document.getElementById("nameInput");
 const abilityInput = document.getElementById("abilityInput");
 const levelInput = document.getElementById("levelInput");
 
+/* =======================
+   CHART DATA STRUCTURE
+======================= */
+function createChartData() {
+  return {
+    stats: [0, 0, 0, 0, 0],
+    color: colorPicker.value,
+    isMulti: false,
+    axisColors: axisColorPickers.map(p => p.value)
+  };
+}
+
+/* =======================
+   INITIALIZE
+======================= */
 window.addEventListener("load", () => {
   const ctx = document.getElementById("radarChart1").getContext("2d");
-  const baseChart = makeRadar(ctx, chartColor);
-  charts.push(baseChart);
-  updateCharts();
+  const baseData = createChartData();
+  const chart = makeRadar(ctx, baseData.color, baseData.stats, baseData.axisColors, baseData.isMulti);
+  charts.push({ chart, ...baseData, canvas: ctx.canvas });
+  updateInputsFromChart(0);
 });
 
 function addChart() {
@@ -109,73 +128,111 @@ function addChart() {
   const ctx = newCanvas.getContext("2d");
   const hue = Math.floor(Math.random() * 360);
   const randColor = `hsl(${hue}, 70%, 55%)`;
-  const newChart = makeRadar(ctx, randColor);
-  charts.push(newChart);
-  const index = charts.length - 1;
+  const newData = createChartData();
+  newData.color = randColor;
+  const newChart = makeRadar(ctx, newData.color, newData.stats, newData.axisColors, newData.isMulti);
+  charts.push({ chart: newChart, ...newData, canvas: newCanvas });
 
+  const index = charts.length - 1;
   const btn = document.createElement("button");
   btn.textContent = `Select Chart ${index + 1}`;
   btn.addEventListener("click", () => selectChart(index));
   chartButtonsDiv.appendChild(btn);
-
   selectChart(index);
 }
 
+/* =======================
+   SELECTION LOGIC
+======================= */
 function selectChart(index) {
   activeChart = index;
   document.querySelectorAll("#chartButtons button").forEach((b, i) => {
     b.style.backgroundColor = i === index ? "#6db5c0" : "#92dfec";
     b.style.color = i === index ? "white" : "black";
   });
-  updateCharts();
+  updateInputsFromChart(index);
 }
 
-function updateCharts() {
+/* =======================
+   SYNC INPUTS <-> ACTIVE CHART
+======================= */
+function updateInputsFromChart(i) {
+  const c = charts[i];
+  [powerInput, speedInput, trickInput, recoveryInput, defenseInput].forEach((el, j) => {
+    el.value = c.stats[j];
+  });
+  colorPicker.value = c.color;
+  multiColorMode = c.isMulti;
+  multiColorBtn.textContent = c.isMulti ? "Single-color" : "Multi-color";
+  axisColorsDiv.style.display = c.isMulti ? "flex" : "none";
+  axisColorPickers.forEach((p, j) => (p.value = c.axisColors[j]));
+}
+
+/* =======================
+   UPDATE ACTIVE CHART
+======================= */
+function updateActiveChart() {
   if (!charts.length) return;
-  const vals = [
+  const c = charts[activeChart];
+  c.stats = [
     +powerInput.value || 0,
     +speedInput.value || 0,
     +trickInput.value || 0,
     +recoveryInput.value || 0,
     +defenseInput.value || 0
   ];
-  chartColor = colorPicker.value;
-  charts.forEach((c, i) => {
-    const fill = computeFill(c, chartColor, axisColorPickers);
-    c.data.datasets[0].data = vals;
-    c.data.datasets[0].backgroundColor = fill;
-    c.data.datasets[0].borderColor = i === activeChart ? chartColor : hexToRGBA(chartColor, 0.25);
-    c.update();
-  });
+  c.color = colorPicker.value;
+  c.isMulti = multiColorMode;
+  c.axisColors = axisColorPickers.map(p => p.value);
+
+  const fill = computeFill(c.chart, c.color, c.axisColors, c.isMulti);
+  c.chart.data.datasets[0].data = c.stats;
+  c.chart.data.datasets[0].backgroundColor = fill;
+  c.chart.data.datasets[0].borderColor = c.color;
+  c.chart.update();
 }
 
+/* =======================
+   EVENT LISTENERS
+======================= */
 addChartBtn.addEventListener("click", addChart);
+
 [multiColorBtn, colorPicker, powerInput, speedInput, trickInput, recoveryInput, defenseInput]
-  .forEach(el => el.addEventListener("input", updateCharts));
+  .forEach(el => el.addEventListener("input", updateActiveChart));
+
+axisColorPickers.forEach(p => p.addEventListener("input", updateActiveChart));
 
 multiColorBtn.addEventListener("click", () => {
   multiColorMode = !multiColorMode;
+  charts[activeChart].isMulti = multiColorMode;
   axisColorsDiv.style.display = multiColorMode ? "flex" : "none";
   multiColorBtn.textContent = multiColorMode ? "Single-color" : "Multi-color";
-  updateCharts();
+  updateActiveChart();
 });
 
-axisColorPickers.forEach(p => p.addEventListener("input", updateCharts));
-
+/* =======================
+   VIEW CHARACTER CHART POPUP
+======================= */
 viewBtn.addEventListener("click", () => {
+  const c = charts[activeChart];
   overlay.classList.remove("hidden");
   overlayImg.src = uploadedImg.src;
   overlayName.textContent = nameInput.value || "-";
   overlayAbility.textContent = abilityInput.value || "-";
   overlayLevel.textContent = levelInput.value || "-";
+
   setTimeout(() => {
     const ctx2 = document.getElementById("radarChart2").getContext("2d");
     if (!radar2Ready) {
-      radar2 = makeRadar(ctx2, chartColor);
+      radar2 = makeRadar(ctx2, c.color, c.stats, c.axisColors, c.isMulti);
       radar2Ready = true;
+    } else {
+      const fill = computeFill(radar2, c.color, c.axisColors, c.isMulti);
+      radar2.data.datasets[0].data = c.stats;
+      radar2.data.datasets[0].backgroundColor = fill;
+      radar2.data.datasets[0].borderColor = c.color;
+      radar2.update();
     }
-    radar2.data.datasets[0].data = charts[activeChart].data.datasets[0].data;
-    radar2.update();
   }, 200);
 });
 
