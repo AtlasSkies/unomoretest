@@ -311,7 +311,7 @@ viewBtn.addEventListener('click', () => {
         left: '10px',
         fontFamily: 'Candara',
         fontWeight: 'bold',
-        fontSize: '9px',
+        fontSize: '12px',
         color: 'rgba(0,0,0,0.15)',
         pointerEvents: 'none',
         zIndex: '2'
