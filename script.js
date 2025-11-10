@@ -2,9 +2,9 @@ let charts = []; // [{ chart, canvas, color, stats[5], multi, axis[5] }]
 let activeChart = 0;
 let radar2, radar2Ready = false;
 
-const FILL_ALPHA = 0.65; // uniform fill opacity
+const FILL_ALPHA = 0.65; // uniform fill opacity for all layers
 
-/* ===== Utilities ===== */
+/* ========== Helpers ========== */
 function hexToRGBA(hex, alpha) {
   if (!hex) hex = "#92dfec";
   if (hex.startsWith("rgb")) return hex.replace(")", `, ${alpha})`).replace("rgb", "rgba");
@@ -14,6 +14,7 @@ function hexToRGBA(hex, alpha) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
+// Conic gradient: each axis color at the wedge corner; smooth blend mid-wedge
 function makeConicGradient(chart, axisColors, alpha = FILL_ALPHA) {
   const r = chart.scales.r;
   const ctx = chart.ctx;
@@ -23,7 +24,99 @@ function makeConicGradient(chart, axisColors, alpha = FILL_ALPHA) {
   return grad;
 }
 
-/* ===== Radar factory ===== */
+/* ========== Plugins: axis titles + numeric () labels ========== */
+// Titles with outlined style; in popup, Speed/Defense get extended radius & slight vertical tweak
+const outlinedLabelsPlugin = {
+  id: 'outlinedLabels',
+  afterDraw(chart) {
+    const ctx = chart.ctx;
+    const r = chart.scales.r;
+    const labels = chart.data.labels;
+    if (!labels) return;
+
+    const cx = r.xCenter, cy = r.yCenter;
+    const isOverlay = chart.canvas.id === 'radarChart2';
+    const baseRadius = r.drawingArea * 1.1;
+    const extendedRadius = r.drawingArea * 1.15;
+    const base = -Math.PI / 2;
+
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = 'italic 18px Candara';
+    // Outline + fill (like original)
+    ctx.strokeStyle = '#8747e6';
+    ctx.fillStyle = 'white';
+    ctx.lineWidth = 4;
+
+    labels.forEach((label, i) => {
+      let angle = base + (i * 2 * Math.PI / labels.length);
+      let radiusToUse = baseRadius;
+      // In popup only, lift Speed (1) and Defense (4) slightly outward:
+      if (isOverlay && (i === 1 || i === 4)) radiusToUse = extendedRadius;
+
+      const x = cx + radiusToUse * Math.cos(angle);
+      let y = cy + radiusToUse * Math.sin(angle);
+
+      // Small vertical tweaks like original:
+      if (i === 0) y -= 5; // Power
+      if (isOverlay && (i === 1 || i === 4)) y -= 42; // Speed/Defense slightly lowered (visual up)
+
+      ctx.strokeText(label, x, y);
+      ctx.fillText(label, x, y);
+    });
+    ctx.restore();
+  }
+};
+
+// Numeric value "(v)" near each title; same popup tweaks for Speed/Defense
+const inputValuePlugin = {
+  id: 'inputValuePlugin',
+  afterDraw(chart) {
+    // Skip if custom background (your style) is active on that chart; here we always draw
+    const ctx = chart.ctx;
+    const r = chart.scales.r;
+    const ds = chart.data.datasets?.[0];
+    const data = ds?.data || [];
+    const labels = chart.data.labels;
+    if (!labels) return;
+
+    const cx = r.xCenter, cy = r.yCenter;
+    const baseRadius = r.drawingArea * 1.1;
+    const base = -Math.PI / 2;
+    const offset = 20;
+    const isOverlay = chart.canvas.id === 'radarChart2';
+
+    ctx.save();
+    ctx.font = '15px Candara';
+    ctx.fillStyle = 'black';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+
+    labels.forEach((label, i) => {
+      const angle = base + (i * 2 * Math.PI / labels.length);
+      let radiusToUse = baseRadius;
+      if (isOverlay && (i === 1 || i === 4)) radiusToUse = r.drawingArea * 1.15;
+
+      const x = cx + (radiusToUse + offset) * Math.cos(angle);
+      let y = cy + (radiusToUse + offset) * Math.sin(angle);
+
+      if (i === 0) y -= 20; // Power
+      if (isOverlay) {
+        if (i === 1 || i === 4) y -= 22; // Speed/Defense
+      }
+
+      // Clamp display to at most 2 decimals like before
+      const val = typeof data[i] === 'number' ? data[i] : 0;
+      const txt = `(${Math.round(val * 100) / 100})`;
+      ctx.fillText(txt, x, y);
+    });
+
+    ctx.restore();
+  }
+};
+
+/* ========== Radar factory ========== */
 function makeRadar(ctx, color, data) {
   return new Chart(ctx, {
     type: "radar",
@@ -41,30 +134,34 @@ function makeRadar(ctx, color, data) {
     options: {
       responsive: true,
       maintainAspectRatio: true,
+      layout: { padding: { top: 25, bottom: 25, left: 10, right: 10 } },
       scales: {
         r: {
           grid: { display: false },
-          angleLines: { color: "#6db5c0" },
-          ticks: { display: false },
-          pointLabels: { color: "transparent" },
+          angleLines: { color: "#6db5c0", lineWidth: 1 },
           min: 0,
-          max: 10 // base out of 10, expands if >10
+          max: 10, // base out of 10; we’ll bump globally if needed
+          ticks: { display: false },
+          pointLabels: { color: "transparent" }
         }
       },
       plugins: { legend: { display: false } }
-    }
+    },
+    plugins: [outlinedLabelsPlugin, inputValuePlugin]
   });
 }
 
-/* ===== DOM refs ===== */
+/* ========== DOM refs ========== */
 const chartArea = document.getElementById("chartArea");
 const addChartBtn = document.getElementById("addChartBtn");
 const chartButtons = document.getElementById("chartButtons");
+
 const powerInput = document.getElementById("powerInput");
 const speedInput = document.getElementById("speedInput");
 const trickInput = document.getElementById("trickInput");
 const recoveryInput = document.getElementById("recoveryInput");
 const defenseInput = document.getElementById("defenseInput");
+
 const colorPicker = document.getElementById("colorPicker");
 const axisColorsDiv = document.getElementById("axisColors");
 const axisColorPickers = [
@@ -75,6 +172,7 @@ const axisColorPickers = [
   document.getElementById("defenseColor")
 ];
 const multiColorBtn = document.getElementById("multiColorBtn");
+
 const viewBtn = document.getElementById("viewBtn");
 const overlay = document.getElementById("overlay");
 const overlayImg = document.getElementById("overlayImg");
@@ -83,13 +181,14 @@ const overlayAbility = document.getElementById("overlayAbility");
 const overlayLevel = document.getElementById("overlayLevel");
 const closeBtn = document.getElementById("closeBtn");
 const downloadBtn = document.getElementById("downloadBtn");
+
 const imgInput = document.getElementById("imgInput");
 const uploadedImg = document.getElementById("uploadedImg");
 const nameInput = document.getElementById("nameInput");
 const abilityInput = document.getElementById("abilityInput");
 const levelInput = document.getElementById("levelInput");
 
-/* ===== Shared scale ===== */
+/* ========== Global scale (shared) ========== */
 function getGlobalMax() {
   let maxVal = 10;
   charts.forEach(c => {
@@ -114,23 +213,25 @@ function applyGlobalScale() {
   }
 }
 
-/* ===== Init ===== */
+/* ========== Init ========== */
 window.addEventListener("load", () => {
   const ctx = document.getElementById("radarChart1").getContext("2d");
   const base = makeRadar(ctx, "#92dfec", [0, 0, 0, 0, 0]);
+
   charts.push({
     chart: base,
     canvas: ctx.canvas,
     color: "#92dfec",
     stats: [0, 0, 0, 0, 0],
     multi: false,
-    axis: axisColorPickers.map(p => p.value)
+    axis: axisColorPickers.map(p => p.value) // initialize axis colors
   });
+
   updateInputs();
   applyGlobalScale();
 });
 
-/* ===== Input sync ===== */
+/* ========== Input sync ========== */
 function updateInputs(index = activeChart) {
   const c = charts[index];
   [powerInput, speedInput, trickInput, recoveryInput, defenseInput].forEach((input, i) => (input.value = c.stats[i]));
@@ -140,10 +241,14 @@ function updateInputs(index = activeChart) {
   axisColorPickers.forEach((p, i) => (p.value = c.axis[i]));
 }
 
-/* ===== Add / Select charts ===== */
+/* ========== Add / Select charts ========== */
 function addChart() {
   const newCanvas = document.createElement("canvas");
   newCanvas.classList.add("stacked-chart");
+  newCanvas.style.position = 'absolute';
+  newCanvas.style.top = '0';
+  newCanvas.style.left = '0';
+  newCanvas.style.opacity = '1'; // explicit: never dim
   chartArea.appendChild(newCanvas);
 
   const ctx = newCanvas.getContext("2d");
@@ -172,18 +277,21 @@ function addChart() {
 
 function selectChart(index) {
   activeChart = index;
+
   chartButtons.querySelectorAll("button").forEach((b, i) => {
     b.style.backgroundColor = i === index ? "#6db5c0" : "#92dfec";
     b.style.color = i === index ? "white" : "black";
   });
+
   charts.forEach((c, i) => {
     c.canvas.style.zIndex = i === index ? "2" : "1";
     c.chart.canvas.style.opacity = "1"; // never dim
   });
+
   updateInputs(index);
 }
 
-/* ===== Update active + redraw ===== */
+/* ========== Update + Redraw ========== */
 function refreshActive() {
   const c = charts[activeChart];
   c.stats = [
@@ -209,7 +317,7 @@ function refreshActive() {
   });
 }
 
-/* ===== Listeners ===== */
+/* ========== Listeners ========== */
 addChartBtn.addEventListener("click", addChart);
 [multiColorBtn, colorPicker, powerInput, speedInput, trickInput, recoveryInput, defenseInput]
   .forEach(el => el.addEventListener("input", refreshActive));
@@ -223,7 +331,7 @@ multiColorBtn.addEventListener("click", () => {
   refreshActive();
 });
 
-/* ===== Popup (overlap all charts, oldest at bottom, newest on top) ===== */
+/* ========== Popup (overlap all charts; oldest bottom, newest top) ========== */
 viewBtn.addEventListener("click", () => {
   overlay.classList.remove("hidden");
   overlayImg.src = uploadedImg.src;
@@ -235,10 +343,10 @@ viewBtn.addEventListener("click", () => {
     const ctx2 = document.getElementById("radarChart2").getContext("2d");
     const globalMax = getGlobalMax();
 
-    // IMPORTANT: keep dataset order EXACTLY as charts[] (oldest first, newest last → drawn on top)
+    // IMPORTANT: Keep dataset order the same as charts[] (oldest first, newest last → newest drawn last = top)
     const datasets = charts.map(obj => ({
       data: obj.stats.slice(),
-      backgroundColor: hexToRGBA(obj.color, FILL_ALPHA), // temp; gradients applied after layout
+      backgroundColor: hexToRGBA(obj.color, FILL_ALPHA), // temporary; gradient after layout
       borderColor: obj.color,
       borderWidth: 2,
       pointRadius: 0
@@ -264,8 +372,11 @@ viewBtn.addEventListener("click", () => {
               max: globalMax < 10 ? 10 : globalMax
             }
           },
-          plugins: { legend: { display: false } }
-        }
+          plugins: {
+            legend: { display: false }
+          }
+        },
+        plugins: [outlinedLabelsPlugin, inputValuePlugin] // draw titles + numbers in popup too
       });
       radar2Ready = true;
     } else {
@@ -276,10 +387,10 @@ viewBtn.addEventListener("click", () => {
       radar2.update();
     }
 
-    // After layout, swap in conic gradients for the datasets that are multi-color
+    // After layout (center computed), apply conic gradients for multi-color datasets
     requestAnimationFrame(() => {
       radar2.data.datasets.forEach((ds, i) => {
-        const src = charts[i]; // SAME INDEX — order preserved, newest last is on top
+        const src = charts[i]; // same order; newest at end
         ds.backgroundColor = src.multi
           ? makeConicGradient(radar2, src.axis, FILL_ALPHA)
           : hexToRGBA(src.color, FILL_ALPHA);
@@ -291,6 +402,7 @@ viewBtn.addEventListener("click", () => {
 
 closeBtn.addEventListener("click", () => overlay.classList.add("hidden"));
 
+/* Image + Download */
 imgInput.addEventListener("change", e => {
   const file = e.target.files[0];
   if (!file) return;
