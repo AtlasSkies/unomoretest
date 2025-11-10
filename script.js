@@ -39,7 +39,7 @@ function getGlobalScaleMax() {
  * PLUGINS
  *************************/
 
-/* Draw pentagon background (for popup only) */
+/* Pentagon background (popup only) */
 const radarBackgroundPlugin = {
   id: 'customPentagonBackground',
   beforeDatasetsDraw(chart) {
@@ -75,7 +75,6 @@ const radarBackgroundPlugin = {
     const N = chart.data.labels.length, start = -Math.PI / 2;
 
     ctx.save();
-    // spokes
     ctx.beginPath();
     for (let i = 0; i < N; i++) {
       const a = start + (i * 2 * Math.PI / N);
@@ -85,7 +84,6 @@ const radarBackgroundPlugin = {
     }
     ctx.strokeStyle = '#35727d'; ctx.lineWidth = 1; ctx.stroke();
 
-    // border
     ctx.beginPath();
     for (let i = 0; i < N; i++) {
       const a = start + (i * 2 * Math.PI / N);
@@ -99,7 +97,7 @@ const radarBackgroundPlugin = {
   }
 };
 
-/* Axis titles (outlined) */
+/* Axis titles */
 const axisTitlesPlugin = {
   id: 'axisTitles',
   afterDraw(chart) {
@@ -119,8 +117,7 @@ const axisTitlesPlugin = {
       const a = base + (i * 2 * Math.PI / labels.length);
       const x = cx + baseRadius * Math.cos(a);
       let y = cy + baseRadius * Math.sin(a);
-      // small nudge like your original
-      if (i === 0) y -= 5; // Power slight upward
+      if (i === 0) y -= 5; // Power slightly up
       ctx.strokeText(label, x, y);
       ctx.fillText(label, x, y);
     });
@@ -128,12 +125,12 @@ const axisTitlesPlugin = {
   }
 };
 
-/* Parentheses only once using global MAX per axis (drawn on the TOP canvas only) */
+/* Parentheses: show only on main radar, live update, max per axis */
 const globalValueLabelsPlugin = {
   id: 'globalValueLabels',
-  afterDraw(chart, args, pluginOptions) {
-    // Draw only for the designated host to avoid duplicates
-    if (!pluginOptions?.isHost) return;
+  afterDraw(chart) {
+    // Skip popup chart
+    if (chart.canvas.closest('#overlay')) return;
 
     const ctx = chart.ctx, r = chart.scales.r;
     const labels = chart.data.labels;
@@ -142,7 +139,6 @@ const globalValueLabelsPlugin = {
     const baseRadius = r.drawingArea * 1.1;
     const offset = 20;
 
-    // compute max per axis across all charts
     const axes = labels.length;
     const maxPerAxis = new Array(axes).fill(0);
     charts.forEach(c => {
@@ -159,16 +155,11 @@ const globalValueLabelsPlugin = {
 
     labels.forEach((_, i) => {
       const angle = base + (i * 2 * Math.PI / axes);
-      let x = cx + (baseRadius + offset) * Math.cos(angle);
+      const x = cx + (baseRadius + offset) * Math.cos(angle);
       let y = cy + (baseRadius + offset) * Math.sin(angle);
 
-      // Adjust DOWN for Power (0), Speed (1), Defense (4) since you said they were too high.
-      if (i === 0) y += 20;
-      if (i === 1) y += 20;
-      if (i === 4) y += 20;
-      // Others can keep default; tweak if you want more/less:
-      // if (i === 2) y += 0; // Trick
-      // if (i === 3) y += 0; // Recovery
+      // Lower Power, Speed, Defense
+      if (i === 0 || i === 1 || i === 4) y += 20;
 
       const val = Math.round(maxPerAxis[i] * 100) / 100;
       ctx.fillText(`(${val})`, x, y);
@@ -180,7 +171,7 @@ const globalValueLabelsPlugin = {
 /*************************
  * FACTORY
  *************************/
-function makeRadar(ctx, color, withBackground = false, isHostForValues = false) {
+function makeRadar(ctx, color, withBackground = false) {
   return new Chart(ctx, {
     type: 'radar',
     data: {
@@ -189,7 +180,7 @@ function makeRadar(ctx, color, withBackground = false, isHostForValues = false) 
         data: [0, 0, 0, 0, 0],
         backgroundColor: hexToRGBA(color, FILL_ALPHA),
         borderColor: color,
-        borderWidth: 2,           // solid per your request
+        borderWidth: 2,
         pointBackgroundColor: '#fff',
         pointBorderColor: color,
         pointRadius: 4
@@ -202,7 +193,7 @@ function makeRadar(ctx, color, withBackground = false, isHostForValues = false) 
       scales: {
         r: {
           min: 0,
-          max: 10,                 // base out-of-10
+          max: 10,
           ticks: { display: false },
           grid: { display: false },
           angleLines: { color: '#6db5c0', lineWidth: 1 },
@@ -212,11 +203,7 @@ function makeRadar(ctx, color, withBackground = false, isHostForValues = false) 
       customBackground: { enabled: withBackground },
       plugins: { legend: { display: false } }
     },
-    plugins: [
-      axisTitlesPlugin,
-      radarBackgroundPlugin,
-      { ...globalValueLabelsPlugin, options: { isHost: isHostForValues } }
-    ]
+    plugins: [axisTitlesPlugin, radarBackgroundPlugin, globalValueLabelsPlugin]
   });
 }
 
@@ -263,8 +250,7 @@ const levelInput = document.getElementById('levelInput');
  * INIT
  *************************/
 window.addEventListener('load', () => {
-  // Create first chart (host for global value parentheses)
-  addChart(true);
+  addChart();
   selectChart(0);
   refreshAll();
 });
@@ -272,17 +258,16 @@ window.addEventListener('load', () => {
 /*************************
  * ADD / SELECT
  *************************/
-function addChart(isFirst = false) {
+function addChart() {
   const canvas = document.createElement('canvas');
   canvas.className = 'layer';
   canvas.style.position = 'absolute';
   canvas.style.inset = '0';
-  canvas.style.zIndex = charts.length + ''; // order: older at bottom
+  canvas.style.zIndex = charts.length + '';
   chartArea.appendChild(canvas);
 
-  // color
-  const color = isFirst ? BASE_COLOR : `hsl(${Math.floor(Math.random()*360)},70%,55%)`;
-  const chart = makeRadar(canvas.getContext('2d'), color, false, isFirst /* host draws values */);
+  const color = charts.length === 0 ? BASE_COLOR : `hsl(${Math.floor(Math.random()*360)},70%,55%)`;
+  const chart = makeRadar(canvas.getContext('2d'), color, false);
 
   const cObj = {
     chart,
@@ -294,7 +279,6 @@ function addChart(isFirst = false) {
   };
   charts.push(cObj);
 
-  // button
   const idx = charts.length - 1;
   const btn = document.createElement('button');
   btn.textContent = `Select Chart ${idx + 1}`;
@@ -304,12 +288,10 @@ function addChart(isFirst = false) {
 
 function selectChart(index) {
   activeIndex = index;
-  // z-index already reflects creation order; keep it.
   chartButtons.querySelectorAll('button').forEach((b, i) => {
     b.style.backgroundColor = i === index ? '#6db5c0' : '#92dfec';
     b.style.color = i === index ? '#fff' : '#000';
   });
-  // load active values to inputs
   const c = charts[index];
   [powerInput, speedInput, trickInput, recoveryInput, defenseInput].forEach((el, i) => el.value = c.stats[i]);
   colorPicker.value = c.color;
@@ -363,14 +345,13 @@ function refreshActiveFromInputs() {
 /*************************
  * LISTENERS
  *************************/
-addChartBtn.addEventListener('click', () => addChart(false));
+addChartBtn.addEventListener('click', () => addChart());
 
 [powerInput, speedInput, trickInput, recoveryInput, defenseInput].forEach(el => {
   el.addEventListener('input', refreshActiveFromInputs);
 });
 
 colorPicker.addEventListener('input', () => {
-  // only change active chart color
   charts[activeIndex].color = colorPicker.value;
   refreshAll();
 });
@@ -403,15 +384,12 @@ imgInput.addEventListener('change', e => {
  *************************/
 viewBtn.addEventListener('click', () => {
   overlay.classList.remove('hidden');
-
   overlayImg.src = uploadedImg.src;
   overlayName.textContent = nameInput.value || '-';
   overlayAbility.textContent = abilityInput.value || '-';
   overlayLevel.textContent = levelInput.value || '-';
 
   const ctx = document.getElementById('overlayChartCanvas').getContext('2d');
-
-  // Build datasets in creation order (oldest bottom, newest top)
   const ds = charts.map(c => ({
     data: c.stats.slice(),
     backgroundColor: hexToRGBA(c.color, FILL_ALPHA),
@@ -420,16 +398,11 @@ viewBtn.addEventListener('click', () => {
     pointRadius: 0
   }));
 
-  if (radarPopup) {
-    radarPopup.destroy();
-  }
+  if (radarPopup) radarPopup.destroy();
 
   radarPopup = new Chart(ctx, {
     type: 'radar',
-    data: {
-      labels: ['Power', 'Speed', 'Trick', 'Recovery', 'Defense'],
-      datasets: ds
-    },
+    data: { labels: ['Power', 'Speed', 'Trick', 'Recovery', 'Defense'], datasets: ds },
     options: {
       responsive: true,
       maintainAspectRatio: true,
@@ -447,10 +420,9 @@ viewBtn.addEventListener('click', () => {
       customBackground: { enabled: true },
       plugins: { legend: { display: false } }
     },
-    plugins: [radarBackgroundPlugin, axisTitlesPlugin, globalValueLabelsPlugin]
+    plugins: [radarBackgroundPlugin, axisTitlesPlugin]
   });
 
-  // apply gradients where needed (after layout so centers are correct)
   requestAnimationFrame(() => {
     radarPopup.data.datasets.forEach((dataset, i) => {
       const src = charts[i];
@@ -464,7 +436,6 @@ viewBtn.addEventListener('click', () => {
 
 closeBtn.addEventListener('click', () => overlay.classList.add('hidden'));
 
-/* Download popup image (keeps watermark overlaying image) */
 downloadBtn.addEventListener('click', () => {
   downloadBtn.style.visibility = 'hidden';
   closeBtn.style.visibility = 'hidden';
