@@ -1,6 +1,6 @@
 let radar1, radar2;
 let radar2Ready = false;
-let chartColor = '#92dfec'; // default color
+let chartColor = '#92dfec';
 let isMulticolor = false;
 
 const CHART1_CENTER = { x: 247, y: 250 };
@@ -16,6 +16,7 @@ function hexToRGBA(hex, alpha) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
+/* Get current axis colors */
 function getAxisColors() {
   return [
     axisColors.power.value,
@@ -113,8 +114,8 @@ const outlinedLabelsPlugin = {
     const baseRadius = r.drawingArea * 1.1;
     const extendedRadius = r.drawingArea * 1.15;
     const base = -Math.PI / 2;
-
     const currentChartColor = chart.config.options.abilityColor;
+
     ctx.save();
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -151,8 +152,8 @@ const inputValuePlugin = {
     const baseRadius = r.drawingArea * 1.1;
     const base = -Math.PI / 2;
     const offset = 20;
-
     const currentChartColor = chart.config.options.abilityColor;
+
     ctx.save();
     ctx.font = '15px Candara';
     ctx.fillStyle = 'white';
@@ -182,7 +183,7 @@ const inputValuePlugin = {
   }
 };
 
-/* === CREATE CHART === */
+/* === CHART CREATOR === */
 function makeRadar(ctx, showPoints = true, withBackground = false, fixedCenter = null) {
   return new Chart(ctx, {
     type: 'radar',
@@ -278,35 +279,40 @@ function updateCharts() {
   const fill = hexToRGBA(chartColor, 0.65);
   const capped = vals.map(v => Math.min(v, 10));
 
-  let borderColors, backgroundColors, pointBorderColors;
+  // Update axis color syncing logic
   if (isMulticolor) {
-    borderColors = getAxisColors();
-    pointBorderColors = getAxisColors();
-    backgroundColors = borderColors.map(c => hexToRGBA(c, 0.4));
+    Object.values(axisColors).forEach(input => {
+      if (!input.dataset.userSelected) input.value = chartColor;
+    });
+  }
+
+  let borderColors, pointBorderColors, backgroundColors;
+  if (isMulticolor) {
+    const colors = getAxisColors();
+    borderColors = colors;
+    pointBorderColors = colors;
+    // create gradient fill
+    const ctx = radar1.ctx;
+    const gradient = ctx.createLinearGradient(0, 0, radar1.width, radar1.height);
+    const stops = colors.length - 1;
+    colors.forEach((c, i) => gradient.addColorStop(i / stops, hexToRGBA(c, 0.5)));
+    backgroundColors = gradient;
   } else {
     borderColors = chartColor;
     pointBorderColors = chartColor;
     backgroundColors = fill;
   }
 
-  if (radar1) {
-    radar1.options.scales.r.suggestedMax = maxVal;
-    radar1.options.abilityColor = chartColor;
-    radar1.data.datasets[0].data = vals;
-    radar1.data.datasets[0].borderColor = borderColors;
-    radar1.data.datasets[0].backgroundColor = backgroundColors;
-    radar1.data.datasets[0].pointBorderColor = pointBorderColors;
-    radar1.update();
-  }
-
-  if (radar2Ready && radar2) {
-    radar2.options.abilityColor = chartColor;
-    radar2.data.datasets[0].data = capped;
-    radar2.data.datasets[0].borderColor = borderColors;
-    radar2.data.datasets[0].backgroundColor = backgroundColors;
-    radar2.data.datasets[0].pointBorderColor = pointBorderColors;
-    radar2.update();
-  }
+  [radar1, radar2].forEach((chart, i) => {
+    if (!chart) return;
+    chart.options.scales.r.suggestedMax = i === 0 ? maxVal : 10;
+    chart.options.abilityColor = chartColor;
+    chart.data.datasets[0].data = i === 0 ? vals : capped;
+    chart.data.datasets[0].borderColor = borderColors;
+    chart.data.datasets[0].backgroundColor = backgroundColors;
+    chart.data.datasets[0].pointBorderColor = pointBorderColors;
+    chart.update();
+  });
 }
 
 inputElements.forEach(el => {
@@ -314,6 +320,20 @@ inputElements.forEach(el => {
   el.addEventListener('change', updateCharts);
 });
 
+/* Track manual axis color changes */
+Object.values(axisColors).forEach(input => {
+  input.addEventListener('input', () => { input.dataset.userSelected = true; updateCharts(); });
+});
+
+colorPicker.addEventListener('input', () => {
+  chartColor = colorPicker.value;
+  if (isMulticolor) {
+    Object.values(axisColors).forEach(input => { input.dataset.userSelected = false; input.value = chartColor; });
+  }
+  updateCharts();
+});
+
+/* === IMAGE UPLOAD === */
 imgInput.addEventListener('change', e => {
   const file = e.target.files[0];
   if (!file) return;
@@ -322,20 +342,17 @@ imgInput.addEventListener('change', e => {
   reader.readAsDataURL(file);
 });
 
-/* === MULTICOLOR === */
+/* === MULTICOLOR BUTTON === */
 multiBtn.addEventListener('click', () => {
   isMulticolor = !isMulticolor;
   const axisColorInputs = document.querySelectorAll('.axisColor');
 
   if (isMulticolor) {
     multiBtn.textContent = 'Single Color';
-    multiBtn.style.backgroundColor = 'red';
-    colorPicker.parentElement.classList.add('hidden');
+    colorPicker.parentElement.classList.remove('hidden');
     axisColorInputs.forEach(input => input.classList.remove('hidden'));
   } else {
     multiBtn.textContent = 'Multicolor';
-    multiBtn.style.backgroundColor = '#92dfec';
-    colorPicker.parentElement.classList.remove('hidden');
     axisColorInputs.forEach(input => input.classList.add('hidden'));
   }
   updateCharts();
