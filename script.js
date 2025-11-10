@@ -122,7 +122,7 @@ const radarBackgroundPlugin = {
   }
 };
 
-// --- UPDATED PLUGIN: Enforces White Fill and Ability Color Outline for Labels ---
+// --- UPDATED PLUGIN: Enforces White Fill and Ability Color Outline for Labels AND Values ---
 const outlinedLabelsPlugin = {
   id: 'outlinedLabels',
   afterDraw(chart) {
@@ -144,8 +144,8 @@ const outlinedLabelsPlugin = {
     // --- 1. Draw Main Labels (Power, Speed, etc.) ---
     ctx.font = 'italic 18px Candara';
     ctx.lineWidth = 4; // Outline thickness
-    ctx.strokeStyle = labelColor; // Outline color: Ability Color (User Request)
-    ctx.fillStyle = 'white';      // Fill color: White (User Request)
+    ctx.strokeStyle = labelColor; // Outline color: Ability Color
+    ctx.fillStyle = 'white';      // Fill color: White
 
     labels.forEach((label, i) => {
       // Calculate position
@@ -163,9 +163,10 @@ const outlinedLabelsPlugin = {
         const valueText = `(${dataValues[i].toFixed(1)})`;
         ctx.font = 'italic 14px Candara';
         
-        // Force simple black text for readability
-        ctx.fillStyle = 'black'; 
-        ctx.strokeStyle = 'transparent';
+        // Apply the same stylistic rules as the main label, but with a thinner outline
+        ctx.lineWidth = 2; 
+        ctx.strokeStyle = labelColor; // Outline color: Ability Color (Consistent with Label)
+        ctx.fillStyle = 'white';      // Fill color: White (Consistent with Label)
         
         let valueY = y + 20; 
         
@@ -174,7 +175,8 @@ const outlinedLabelsPlugin = {
           valueY = y + 25; 
         }
         
-        // Draw the value
+        // Draw the value (OUTLINED)
+        ctx.strokeText(valueText, x, valueY); 
         ctx.fillText(valueText, x, valueY); 
       }
     });
