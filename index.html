@@ -1,14 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UnOrdinary Ability Chart Maker</title>
-  <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-</head>
-
 <body>
   <div class="container">
     <div class="left">
@@ -51,6 +40,7 @@
     </div>
 
     <div class="chart-area" id="chartArea">
+      <!-- All radar charts will stack here -->
       <canvas id="radarChart1"></canvas>
     </div>
   </div>
@@ -67,8 +57,7 @@
           <b>Ability:</b> <span id="overlayAbility">-</span><br>
           <b>Level:</b> <span id="overlayLevel">-</span>
         </div>
-        <!-- ✅ Watermark -->
-        <div id="popupWatermark" class="popup-watermark">AS</div>
+        <div class="popup-watermark">AS</div>
       </div>
 
       <div class="overlay-chart">
@@ -81,4 +70,3 @@
 
   <script src="script.js"></script>
 </body>
-</html>
