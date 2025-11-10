@@ -124,7 +124,6 @@ const outlinedLabelsPlugin = {
     const labels = chart.data.labels;
     const dataValues = chart.data.datasets[0].data;
     const isChart1 = chart.canvas.id === 'radarChart1';
-
     const cx = r.xCenter, cy = r.yCenter;
     const base = -Math.PI / 2;
     const labelColor = chart.config.options.abilityColor || chartColor;
@@ -138,21 +137,22 @@ const outlinedLabelsPlugin = {
     ctx.lineWidth = 4;
 
     labels.forEach((label, i) => {
-      let currentRadius = r.drawingArea * (isChart1 ? 1.05 : 1.1);
       const angle = base + (i * 2 * Math.PI / labels.length);
-      const x = cx + currentRadius * Math.cos(angle);
-      const y = cy + currentRadius * Math.sin(angle);
+      const radius = r.drawingArea * (isChart1 ? 1.05 : 1.1);
+      const x = cx + radius * Math.cos(angle);
+      const y = cy + radius * Math.sin(angle);
 
+      // draw main label
       ctx.strokeText(label, x, y);
       ctx.fillText(label, x, y);
 
       if (isChart1) {
+        // draw value below label
         ctx.font = 'italic 14px Candara';
         ctx.fillStyle = 'black';
-        const valueText = `(${dataValues[i].toFixed(1)})`;
-        const valueX = cx + (currentRadius + 10) * Math.cos(angle);
-        const valueY = y + 18;
-        ctx.fillText(valueText, valueX, valueY);
+        const val = `(${dataValues[i].toFixed(1)})`;
+        const offsetY = y + 20;
+        ctx.fillText(val, x, offsetY);
       }
     });
     ctx.restore();
@@ -255,7 +255,7 @@ function updateCharts() {
 
   const newColor = colorPicker.value;
 
-  // Always sync all axis colors with ability color when ability color changes
+  // when ability color changes, update all axis colors
   if (chartColor !== newColor) {
     chartColor = newColor;
     Object.values(axisColors).forEach(el => el.value = chartColor);
