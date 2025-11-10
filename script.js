@@ -33,21 +33,26 @@ function createAxisGradient(ctx, chartArea, colors) {
     // Get current alpha value for transparency
     const alpha = parseFloat(alphaInput.value); 
 
+    // Chart.js uses the Conic Gradient API for the background fill
     const grad = ctx.createConicGradient(-Math.PI / 2, cx, cy);
     const n = colors.length;
     
-    // Add colors to the conic gradient with alpha applied
+    // Apply colors to the conic gradient for a smooth blend
     colors.forEach((c, i) => {
         const rgba = hexToRGBA(c, alpha);
+        // Set the color stop only at the segment boundary (i/n)
         grad.addColorStop(i / n, rgba);
-        grad.addColorStop((i + 1) / n - 0.0001, rgba);
     });
+
+    // Add the first color again at the end (1.0) to ensure a smooth, wrapping gradient
+    grad.addColorStop(1.0, hexToRGBA(colors[0], alpha)); 
+    
     return grad;
 }
 
 
-/* === Chart.js Plugins (Copied from your working code) === */
-const fixedCenterPlugin = { /* ... fixedCenterPlugin ... */ 
+/* === Chart.js Plugins (No Change) === */
+const fixedCenterPlugin = { 
     id: 'fixedCenter',
     beforeLayout(chart) {
         const opt = chart.config.options.fixedCenter;
@@ -60,7 +65,7 @@ const fixedCenterPlugin = { /* ... fixedCenterPlugin ... */
     }
 };
 
-const radarBackgroundPlugin = { /* ... radarBackgroundPlugin ... */
+const radarBackgroundPlugin = { 
     id: 'customPentagonBackground',
     beforeDatasetsDraw(chart) {
         const opts = chart.config.options.customBackground;
@@ -123,7 +128,7 @@ const radarBackgroundPlugin = { /* ... radarBackgroundPlugin ... */
     }
 };
 
-const outlinedLabelsPlugin = { /* ... outlinedLabelsPlugin ... */
+const outlinedLabelsPlugin = { 
     id: 'outlinedLabels',
     afterDraw(chart) {
         const ctx = chart.ctx;
@@ -160,7 +165,7 @@ const outlinedLabelsPlugin = { /* ... outlinedLabelsPlugin ... */
     }
 };
 
-const inputValuePlugin = { /* ... inputValuePlugin ... */
+const inputValuePlugin = { 
     id: 'inputValuePlugin',
     afterDraw(chart) {
         if (chart.config.options.customBackground.enabled) return; 
@@ -207,18 +212,17 @@ function makeRadar(ctx, showPoints = true, withBackground = false, fixedCenter =
                 data: [0, 0, 0, 0, 0],
                 borderWidth: 2,
                 pointBackgroundColor: '#fff',
-                // Use a function for background to handle both single and multi-color modes
                 backgroundColor: context => {
                     const { chart } = context;
                     const { ctx, chartArea } = chart;
                     if (!chartArea) return null;
 
                     if (isMulticolor) {
-                        // Background is handled by gradient function, which now uses alphaInput
+                        // Uses the smooth gradient function
                         const axisColors = getAxisColors();
                         return createAxisGradient(ctx, chartArea, axisColors);
                     } else {
-                        // Background is handled by single color, using alphaInput
+                        // Uses the single color with transparency
                         const alpha = parseFloat(alphaInput.value);
                         return hexToRGBA(chartColor, alpha);
                     }
@@ -268,7 +272,7 @@ const trickInput = document.getElementById('trickInput');
 const recoveryInput = document.getElementById('recoveryInput');
 const defenseInput = document.getElementById('defenseInput');
 const colorPicker = document.getElementById('colorPicker');
-const alphaInput = document.getElementById('alphaInput'); // NEW: Alpha Input
+const alphaInput = document.getElementById('alphaInput');
 const nameInput = document.getElementById('nameInput');
 const abilityInput = document.getElementById('abilityInput');
 const levelInput = document.getElementById('levelInput');
@@ -305,24 +309,18 @@ function updateCharts() {
     // Update main color
     chartColor = colorPicker.value || chartColor; 
 
-    // Get current alpha for transparency
-    const alpha = parseFloat(alphaInput.value);
-
     // Update Max scale for radar1 
     const maxVal = Math.max(...vals, 10); 
     
     // For the overlay chart (radar2), values are capped at 10
     const cappedVals = vals.map(v => Math.min(v, 10)); 
-    
-    // Fallback single color fill using new alpha
-    const singleColorFill = hexToRGBA(chartColor, alpha);
 
     if (radar1) {
         radar1.options.scales.r.suggestedMax = maxVal;
         radar1.data.datasets[0].data = vals;
         radar1.data.datasets[0].borderColor = chartColor;
         radar1.data.datasets[0].pointBorderColor = chartColor;
-        // The background color is a function in makeRadar, which now reads 'alphaInput'
+        // The background color is a function in makeRadar, which re-evaluates on update()
         radar1.update(); 
     }
 
@@ -330,7 +328,6 @@ function updateCharts() {
         radar2.data.datasets[0].data = cappedVals;
         radar2.data.datasets[0].borderColor = chartColor;
         radar2.data.datasets[0].pointBorderColor = chartColor;
-        // For radar2, the background plugin radial gradient needs chartColor
         // The main dataset background is handled by the function in makeRadar
         radar2.update();
     }
@@ -344,12 +341,12 @@ multiBtn.addEventListener('click', () => {
 
     // Toggle visibility of axis color pickers
     Object.values(axisColors).forEach(el => {
-        // Toggle the 'hidden' class based on the new isMulticolor state
         el.classList.toggle('hidden', !isMulticolor); 
     });
     
     // Toggle visibility of the main color picker and alpha input when in multicolor mode
     colorPicker.classList.toggle('hidden', isMulticolor);
+    // alphaInput is always visible unless main color picker is hidden
     alphaInput.parentElement.classList.toggle('hidden', isMulticolor);
 
 
