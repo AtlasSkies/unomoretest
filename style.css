@@ -1,309 +1,290 @@
 body {
-  font-family: Candara, sans-serif;
-  background: #f0f8fc;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 20px 40px;
-  margin: 0;
-  color: #333;
+  font-family: Candara, sans-serif;
+  background: #f0f8fc;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px 40px;
+  margin: 0;
+  color: #333;
 }
 
 .header-with-info {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
 }
 
 .title-block {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 h1 {
-  text-align: center;
-  font-style: italic;
-  color: #333;
-  margin: 0;
+  text-align: center;
+  font-style: italic;
+  color: #333;
+  margin: 0;
 }
 
 .subtitle {
-  font-style: italic;
-  font-size: 14px;
-  color: #666;
-  margin-top: -5px;
+  font-style: italic;
+  font-size: 14px;
+  color: #666;
+  margin-top: -5px;
 }
 
 .container {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 30px;
-  max-width: 1200px;
-  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 30px;
+  max-width: 1200px;
+  width: 100%;
 }
 
 .left {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  min-width: 300px;
 }
 
 .upload-img {
-  width: clamp(180px, 25vw, 250px);
-  height: clamp(180px, 25vw, 250px);
-  border: 2px dashed #aaa;
-  border-radius: 10px;
-  object-fit: cover;
-  background-color: white;
+  width: clamp(180px, 25vw, 250px);
+  height: clamp(180px, 25vw, 250px);
+  border: 2px dashed #aaa;
+  border-radius: 10px;
+  object-fit: cover;
+  background-color: white;
 }
 
 .info-box {
-  background-color: white;
-  color: black;
-  border-radius: 8px;
-  padding: 8px 12px;
-  width: clamp(180px, 25vw, 250px);
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  background-color: white;
+  color: black;
+  border-radius: 8px;
+  padding: 8px 12px;
+  width: clamp(180px, 25vw, 250px);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .info-box label {
-  display: flex;
-  justify-content: space-between;
-  font-weight: bold;
-  font-style: normal;
-  font-size: 15px;
+  display: flex;
+  justify-content: space-between;
+  font-weight: bold;
+  font-style: normal;
+  font-size: 15px;
 }
 
 .info-box input {
-  width: 100px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  padding: 3px;
-  font-family: Candara;
+  width: 100px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  padding: 3px;
+  font-family: Candara;
 }
 
 .inputs {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
 }
 
 label {
-  font-style: italic;
-  color: #333;
-  font-size: 15px;
-  display: flex;
-  justify-content: space-between;
-  width: clamp(200px, 80%, 260px);
+  font-style: italic;
+  color: #333;
+  font-size: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center; /* Added for alignment with new color inputs */
+  width: clamp(200px, 80%, 260px);
 }
 
 input[type="number"], input[type="text"] {
-  width: 110px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  padding: 4px;
-  font-family: Candara;
+  width: 110px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  padding: 4px;
+  font-family: Candara;
 }
 
 input[type="color"] {
-  border: none;
-  background: none;
-  width: 60px;
-  height: 35px;
-  cursor: pointer;
+  border: none;
+  background: none;
+  width: 40px; /* Reduced width for better fit */
+  height: 30px;
+  cursor: pointer;
 }
 
 button {
-  margin-top: 8px;
-  padding: 6px 12px;
-  font-family: Candara;
-  font-weight: bold;
-  background-color: #92dfec;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  margin-top: 8px;
+  padding: 6px 12px;
+  font-family: Candara;
+  font-weight: bold;
+  background-color: #92dfec;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 button:hover {
-  background-color: #6db5c0;
-  color: white;
+  background-color: #6db5c0;
+  color: white;
+}
+
+/* New: Utility class for hiding elements */
+.hidden {
+  display: none !important;
 }
 
 .chart-area {
-  position: relative;
-  width: clamp(300px, 40vw, 500px);
-  height: clamp(300px, 40vw, 500px);
-}
-
-/* === MULTICOLOR MODE SECTION === */
-#axisColorPickers {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  margin-top: 5px;
-  padding: 8px 12px;
-  border-radius: 10px;
-  background-color: white;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  width: clamp(200px, 80%, 260px);
-}
-
-#axisColorPickers label {
-  font-size: 14px;
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-}
-
-.hidden {
-  display: none;
+  position: relative;
+  width: clamp(300px, 40vw, 500px);
+  height: clamp(300px, 40vw, 500px);
 }
 
 .overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 10;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
 }
 
 .character-box {
-  background: #fff;
-  width: 52vw;
-  height: 64vh;
-  border-radius: 15px;
-  position: relative;
-  color: #000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 40px;
-  overflow: hidden;
-  padding: 20px;
+  background: #fff;
+  width: 52vw;
+  height: 64vh;
+  border-radius: 15px;
+  position: relative;
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  overflow: hidden;
+  padding: 20px;
 }
 
 .close-btn {
-  position: absolute;
-  top: 10px;
-  right: 15px;
-  font-size: 28px;
-  background: none;
-  border: none;
-  cursor: pointer;
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 28px;
+  background: none;
+  border: none;
+  cursor: pointer;
 }
 
 .image-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
 }
 
 .overlay-img {
-  width: 300px;
-  height: 300px;
-  object-fit: cover;
-  border: 3px solid #493e3b;
-  border-radius: 6px;
+  width: 300px;
+  height: 300px;
+  object-fit: cover;
+  border: 3px solid #493e3b;
+  border-radius: 6px;
 }
 
 .text-box {
-  position: absolute;
-  bottom: -45px;
-  width: 80%;
-  background: white;
-  border: 3px solid #493e3b;
-  padding: 10px;
-  font-family: Candara;
-  text-align: center;
+  position: absolute;
+  bottom: -45px;
+  width: 80%;
+  background: white;
+  border: 3px solid #493e3b;
+  padding: 10px;
+  font-family: Candara;
+  text-align: center;
 }
 
 .overlay-chart {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: clamp(280px, 40vw, 450px);
-  height: clamp(280px, 40vw, 450px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: clamp(280px, 40vw, 450px);
+  height: clamp(280px, 40vw, 450px);
 }
 
 #downloadBtn {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  background: #92dfec;
-  border: none;
-  border-radius: 5px;
-  padding: 6px 10px;
-  cursor: pointer;
-  font-weight: bold;
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: #92dfec;
+  border: none;
+  border-radius: 5px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-weight: bold;
 }
 
-/* === MOBILE LAYOUT FOR VIEW CHARACTER CHART === */
+/* === MOBILE LAYOUT FOR VIEW CHARACTER CHART (Dynamic Height) === */
 @media (max-width: 768px) {
-  .character-box {
-    flex-direction: column;
-    width: 90vw;
-    max-height: 90vh;
-    padding: 15px;
-    gap: 20px;
-    overflow-y: auto;
-    justify-content: flex-start;
-    align-items: center;
-    box-sizing: border-box;
-  }
+  .character-box {
+    flex-direction: column;
+    width: 90vw;
+    max-height: 90vh;
+    padding: 15px;
+    gap: 20px;
+    overflow-y: auto;
+    justify-content: flex-start;
+    align-items: center;
+    box-sizing: border-box;
+  }
 
-  .overlay-img {
-    width: 70vw;
-    height: auto;
-    max-height: 35vh;
-    object-fit: cover;
-    border: 2px solid #493e3b;
-    border-radius: 8px;
-  }
+  .overlay-img {
+    width: 70vw;
+    height: auto;
+    max-height: 35vh;
+    object-fit: cover;
+    border: 2px solid #493e3b;
+    border-radius: 8px;
+  }
 
-  .text-box {
-    position: relative;
-    bottom: auto;
-    margin-top: 8px;
-    width: 80%;
-    text-align: center;
-  }
+  .text-box {
+    position: relative;
+    bottom: auto;
+    margin-top: 8px;
+    width: 80%;
+    text-align: center;
+  }
 
-  .overlay-chart {
-    width: 75vw;
-    height: 75vw;
-    margin-top: 15px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
+  .overlay-chart {
+    width: 75vw;
+    height: 75vw;
+    margin-top: 15px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
 
-  #downloadBtn {
-    position: static;
-    align-self: center;
-    margin-top: 10px;
-  }
+  #downloadBtn {
+    position: static;
+    align-self: center;
+    margin-top: 10px;
+  }
 
-  .close-btn {
-    top: 8px;
-    right: 12px;
-    font-size: 26px;
-  }
+  .close-btn {
+    top: 8px;
+    right: 12px;
+    font-size: 26px;
+  }
 }
