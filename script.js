@@ -122,8 +122,8 @@ const axisTitlesPlugin = {
 
       // Adjust in popup: raise Speed & Defense
       if (isPopup && (label === 'Speed' || label === 'Defense')) y -= 25;
-
       if (i === 0) y -= 5; // Power slightly up
+
       ctx.strokeText(label, x, y);
       ctx.fillText(label, x, y);
     });
@@ -165,7 +165,7 @@ const globalValueLabelsPlugin = {
       const x = cx + (baseRadius + offset) * Math.cos(angle);
       let y = cy + (baseRadius + offset) * Math.sin(angle);
 
-      // Lower these slightly
+      // Lower Power, Speed, Defense slightly
       if (i === 0 || i === 1 || i === 4) y += 20;
 
       const val = Math.round(maxPerAxis[i] * 100) / 100;
@@ -442,3 +442,27 @@ viewBtn.addEventListener('click', () => {
 });
 
 closeBtn.addEventListener('click', () => overlay.classList.add('hidden'));
+
+/*************************
+ * DOWNLOAD
+ *************************/
+downloadBtn.addEventListener('click', () => {
+  const box = document.getElementById('characterBox');
+  downloadBtn.style.visibility = 'hidden';
+  closeBtn.style.visibility = 'hidden';
+
+  html2canvas(box, {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: null
+  }).then(canvas => {
+    const link = document.createElement('a');
+    const cleanName = (nameInput.value || 'Unnamed').replace(/\s+/g, '_');
+    link.download = `${cleanName}_CharacterChart.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+
+    downloadBtn.style.visibility = 'visible';
+    closeBtn.style.visibility = 'visible';
+  });
+});
