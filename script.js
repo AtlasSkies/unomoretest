@@ -26,7 +26,6 @@ function hexToRGBA(hex, alpha) {
 /**
  * Conic gradient centered at the chart center.
  * Color at each axis angle = axis color; mid-wedge is the blend.
- * Works for both main & overlay charts.
  */
 function makeConicGradient(chart, axisColors, alpha = 0.65) {
   const r = chart.scales.r;
@@ -35,20 +34,18 @@ function makeConicGradient(chart, axisColors, alpha = 0.65) {
   const N = chart.data.labels.length;
   const start = -Math.PI / 2;
 
-  // Use modern Canvas2D conic gradients (supported in modern Chrome/Edge/Firefox)
   const grad = ctx.createConicGradient(0, cx, cy);
 
   // Add stops at each axis angle with the axis color.
   for (let i = 0; i < N; i++) {
     const angle = start + (i * 2 * Math.PI / N);
-    // Normalize to [0, 1)
     let t = (angle % (2 * Math.PI));
     if (t < 0) t += 2 * Math.PI;
     const stop = t / (2 * Math.PI);
     grad.addColorStop(stop, hexToRGBA(axisColors[i], alpha));
   }
-  // Close the loop by repeating the first color at 1.0
-  grad.addColorStop(1, hexToRGBA(axisColors[0], alpha));
+  // ✅ FIXED: ensures Trick–Speed wedge blends smoothly
+  grad.addColorStop(1, hexToRGBA(axisColors[1], alpha));
 
   return grad;
 }
@@ -58,17 +55,13 @@ function makeConicGradient(chart, axisColors, alpha = 0.65) {
  */
 function computeFill(chart, values, abilityHex, axisPickers) {
   if (!multiColorMode) return hexToRGBA(abilityHex, 0.65);
-
-  // In multicolor mode, gather axis colors
   const cols = axisPickers.map(p => p.value || abilityHex);
   return makeConicGradient(chart, cols, 0.65);
 }
 
 /* =======================
-   YOUR ORIGINAL PLUGINS
+   ORIGINAL PLUGINS
 ======================= */
-
-/* === FIXED CENTER === */
 const fixedCenterPlugin = {
   id: 'fixedCenter',
   beforeLayout(chart) {
@@ -82,7 +75,6 @@ const fixedCenterPlugin = {
   }
 };
 
-/* === BACKGROUND + SPOKES === */
 const radarBackgroundPlugin = {
   id: 'customPentagonBackground',
   beforeDatasetsDraw(chart) {
@@ -91,12 +83,10 @@ const radarBackgroundPlugin = {
     const r = chart.scales.r, ctx = chart.ctx;
     const cx = r.xCenter, cy = r.yCenter, radius = r.drawingArea;
     const N = chart.data.labels.length, start = -Math.PI / 2;
-
     const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
     gradient.addColorStop(0, '#f8fcff');
     gradient.addColorStop(0.33, '#92dfec');
     gradient.addColorStop(1, '#92dfec');
-
     ctx.save();
     ctx.beginPath();
     for (let i = 0; i < N; i++) {
@@ -116,9 +106,7 @@ const radarBackgroundPlugin = {
     const r = chart.scales.r, ctx = chart.ctx;
     const cx = r.xCenter, cy = r.yCenter, radius = r.drawingArea;
     const N = chart.data.labels.length, start = -Math.PI / 2;
-
     ctx.save();
-    // spokes
     ctx.beginPath();
     for (let i = 0; i < N; i++) {
       const a = start + (i * 2 * Math.PI / N);
@@ -130,8 +118,6 @@ const radarBackgroundPlugin = {
     ctx.strokeStyle = '#35727d';
     ctx.lineWidth = 1;
     ctx.stroke();
-
-    // border
     ctx.beginPath();
     for (let i = 0; i < N; i++) {
       const a = start + (i * 2 * Math.PI / N);
@@ -147,7 +133,6 @@ const radarBackgroundPlugin = {
   }
 };
 
-/* === OUTLINED LABELS (Speed & Defense slightly lowered) === */
 const outlinedLabelsPlugin = {
   id: 'outlinedLabels',
   afterDraw(chart) {
@@ -174,10 +159,8 @@ const outlinedLabelsPlugin = {
       if (isOverlayChart && (i === 1 || i === 4)) radiusToUse = extendedRadius;
       const x = cx + radiusToUse * Math.cos(angle);
       let y = cy + radiusToUse * Math.sin(angle);
-
       if (i === 0) y -= 5;
-      if (isOverlayChart && (i === 1 || i === 4)) y -= 42; // your tuned offsets
-
+      if (isOverlayChart && (i === 1 || i === 4)) y -= 42;
       ctx.strokeText(label, x, y);
       ctx.fillText(label, x, y);
     });
@@ -185,11 +168,10 @@ const outlinedLabelsPlugin = {
   }
 };
 
-/* === NUMERIC LABELS (Speed & Defense slightly lowered) === */
 const inputValuePlugin = {
   id: 'inputValuePlugin',
   afterDraw(chart) {
-    if (chart.config.options.customBackground?.enabled) return; // hide when background in overlay is drawn
+    if (chart.config.options.customBackground?.enabled) return;
     const ctx = chart.ctx;
     const r = chart.scales.r;
     const data = chart.data.datasets[0].data;
@@ -198,20 +180,17 @@ const inputValuePlugin = {
     const baseRadius = r.drawingArea * 1.1;
     const base = -Math.PI / 2;
     const offset = 20;
-
     ctx.save();
     ctx.font = '15px Candara';
     ctx.fillStyle = 'black';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-
     labels.forEach((label, i) => {
       const angle = base + (i * 2 * Math.PI / labels.length);
       let radiusToUse = baseRadius;
       if (chart.canvas.id === 'radarChart2' && (i === 1 || i === 4)) radiusToUse = r.drawingArea * 1.15;
       const x = cx + (radiusToUse + offset) * Math.cos(angle);
       let y = cy + (radiusToUse + offset) * Math.sin(angle);
-
       if (i === 0) y -= 20;
       if (chart.canvas.id === 'radarChart2') {
         if (i === 1 || i === 4) y -= 22;
@@ -233,15 +212,15 @@ function makeRadar(ctx, showPoints = true, withBackground = false, fixedCenter =
     type: 'radar',
     data: {
       labels: ['Power', 'Speed', 'Trick', 'Recovery', 'Defense'],
-    datasets: [{
-      data: [0, 0, 0, 0, 0],
-      backgroundColor: hexToRGBA(chartColor, 0.65),
-      borderColor: chartColor,
-      borderWidth: 2,
-      pointBackgroundColor: '#fff',
-      pointBorderColor: chartColor,
-      pointRadius: showPoints ? 5 : 0
-    }]
+      datasets: [{
+        data: [0, 0, 0, 0, 0],
+        backgroundColor: hexToRGBA(chartColor, 0.65),
+        borderColor: chartColor,
+        borderWidth: 2,
+        pointBackgroundColor: '#fff',
+        pointBorderColor: chartColor,
+        pointRadius: showPoints ? 5 : 0
+      }]
     },
     options: {
       responsive: true,
@@ -257,7 +236,7 @@ function makeRadar(ctx, showPoints = true, withBackground = false, fixedCenter =
           pointLabels: { color: 'transparent' }
         }
       },
-      customBackground: { enabled: withBackground }, // overlay keeps your pentagon bg
+      customBackground: { enabled: withBackground },
       fixedCenter: { enabled: !!fixedCenter, centerX: fixedCenter?.x, centerY: fixedCenter?.y },
       plugins: { legend: { display: false } }
     },
@@ -278,20 +257,15 @@ const overlayAbility = document.getElementById('overlayAbility');
 const overlayLevel = document.getElementById('overlayLevel');
 const closeBtn = document.getElementById('closeBtn');
 const downloadBtn = document.getElementById('downloadBtn');
-
 const powerInput = document.getElementById('powerInput');
 const speedInput = document.getElementById('speedInput');
 const trickInput = document.getElementById('trickInput');
 const recoveryInput = document.getElementById('recoveryInput');
 const defenseInput = document.getElementById('defenseInput');
-
 const colorPicker = document.getElementById('colorPicker');
-
 const nameInput = document.getElementById('nameInput');
 const abilityInput = document.getElementById('abilityInput');
 const levelInput = document.getElementById('levelInput');
-
-// Multicolor UI
 const multiColorBtn = document.getElementById('multiColorBtn');
 const axisColorsDiv = document.getElementById('axisColors');
 const axisColorPickers = [
@@ -310,10 +284,9 @@ const CHART_SIZE_MULTIPLIER = 1.0;
 
 window.addEventListener('load', () => {
   const ctx1 = document.getElementById('radarChart1').getContext('2d');
-  radar1 = makeRadar(ctx1, true, false, CHART1_CENTER); // keep fixed center on chart 1
+  radar1 = makeRadar(ctx1, true, false, CHART1_CENTER);
   chartColor = colorPicker.value || chartColor;
   lastAbilityColor = chartColor;
-  // initialize axis pickers to ability color
   axisColorPickers.forEach(p => p.value = chartColor);
   updateCharts();
 });
@@ -329,13 +302,8 @@ function updateCharts() {
     +recoveryInput.value || 0,
     +defenseInput.value || 0
   ];
-
-  // Clamp overlay chart to 10 (as you had)
   const capped = vals.map(v => Math.min(v, 10));
-
   chartColor = colorPicker.value || chartColor;
-
-  // MAIN CHART
   if (radar1) {
     const fill1 = computeFill(radar1, vals, chartColor, axisColorPickers);
     radar1.data.datasets[0].data = vals;
@@ -343,8 +311,6 @@ function updateCharts() {
     radar1.data.datasets[0].backgroundColor = fill1;
     radar1.update();
   }
-
-  // OVERLAY CHART
   if (radar2Ready && radar2) {
     const fill2 = computeFill(radar2, capped, chartColor, axisColorPickers);
     radar2.data.datasets[0].data = capped;
@@ -357,13 +323,11 @@ function updateCharts() {
 /* =======================
    LISTENERS
 ======================= */
-// Inputs drive chart updates
 [powerInput, speedInput, trickInput, recoveryInput, defenseInput].forEach(el => {
   el.addEventListener('input', updateCharts);
   el.addEventListener('change', updateCharts);
 });
 
-// Ability color changes: propagate to axis pickers that still matched the old ability color
 colorPicker.addEventListener('input', () => {
   const newAbility = colorPicker.value;
   axisColorPickers.forEach(p => {
@@ -385,18 +349,15 @@ colorPicker.addEventListener('change', () => {
   updateCharts();
 });
 
-// Axis colors update only in multicolor mode
 axisColorPickers.forEach(p => {
   p.addEventListener('input', () => multiColorMode && updateCharts());
   p.addEventListener('change', () => multiColorMode && updateCharts());
 });
 
-// Toggle multicolor
 multiColorBtn.addEventListener('click', () => {
   multiColorMode = !multiColorMode;
   axisColorsDiv.style.display = multiColorMode ? 'flex' : 'none';
   multiColorBtn.textContent = multiColorMode ? 'Single-color' : 'Multi-color';
-  // When turning on, sync default pickers to ability color if untouched
   if (multiColorMode) {
     axisColorPickers.forEach(p => {
       if (!p.value) p.value = colorPicker.value || '#92dfec';
@@ -405,9 +366,6 @@ multiColorBtn.addEventListener('click', () => {
   updateCharts();
 });
 
-/* =======================
-   IMAGE + OVERLAY
-======================= */
 imgInput.addEventListener('change', e => {
   const file = e.target.files[0];
   if (!file) return;
@@ -422,20 +380,15 @@ viewBtn.addEventListener('click', () => {
   overlayName.textContent = nameInput.value || '-';
   overlayAbility.textContent = abilityInput.value || '-';
   overlayLevel.textContent = levelInput.value || '-';
-
   setTimeout(() => {
-    // Resize overlay chart area according to image+textbox (your logic)
     const img = document.getElementById('overlayImg');
     const textBox = document.querySelector('.text-box');
     const overlayChart = document.querySelector('.overlay-chart');
     const imgHeight = img.offsetHeight;
     const textHeight = textBox.offsetHeight;
     const targetSize = (imgHeight + textHeight) * CHART_SIZE_MULTIPLIER;
-
     overlayChart.style.height = `${targetSize}px`;
     overlayChart.style.width = `${targetSize}px`;
-
-    // Watermark "AS" (kept)
     const existingWatermark = document.querySelector('.image-section .watermark-image');
     if (!existingWatermark) {
       const wm = document.createElement('div');
@@ -454,10 +407,8 @@ viewBtn.addEventListener('click', () => {
       });
       document.querySelector('.image-section').appendChild(wm);
     }
-
     const ctx2 = document.getElementById('radarChart2').getContext('2d');
     if (!radar2Ready) {
-      // overlay chart has the background pentagon on
       radar2 = makeRadar(ctx2, false, true, { x: targetSize / 2, y: targetSize / 2 });
       radar2.options.scales.r.suggestedMax = 10;
       radar2Ready = true;
@@ -470,35 +421,27 @@ viewBtn.addEventListener('click', () => {
 
 closeBtn.addEventListener('click', () => overlay.classList.add('hidden'));
 
-/* =======================
-   DOWNLOAD (same behavior)
-======================= */
 downloadBtn.addEventListener('click', () => {
   downloadBtn.style.visibility = 'hidden';
   closeBtn.style.visibility = 'hidden';
-
   const box = document.getElementById('characterBox');
   const originalFlex = box.style.flexDirection;
   const originalWidth = box.style.width;
   const originalHeight = box.style.height;
-
   box.style.flexDirection = 'row';
   box.style.width = '52vw';
   box.style.height = '64vh';
   box.style.maxHeight = 'none';
   box.style.overflow = 'visible';
-
   html2canvas(box, { scale: 2 }).then(canvas => {
     const link = document.createElement('a');
     const cleanName = (nameInput.value || 'Unnamed').replace(/\s+/g, '_');
     link.download = `${cleanName}_CharacterChart.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
-
     box.style.flexDirection = originalFlex;
     box.style.width = originalWidth;
     box.style.height = originalHeight;
-
     downloadBtn.style.visibility = 'visible';
     closeBtn.style.visibility = 'visible';
   });
