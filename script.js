@@ -10,7 +10,7 @@ const DEFAULT_FILL_OPACITY = 0.65;
 
 /* === UTILITIES === */
 function hexToRGBA(hex, alpha) {
-    if (!hex || hex.length < 7) return `rgba(0,0,0,${alpha})`; // Safety check
+    if (!hex || hex.length < 7) return `rgba(0,0,0,${alpha})`;
     const r = parseInt(hex.slice(1, 3), 16);
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
@@ -351,8 +351,11 @@ function updateCharts() {
 
 /* === INPUT HANDLERS === */
 inputElements.forEach(el => {
-    el.addEventListener('input', updateCharts);
-    el.addEventListener('change', updateCharts);
+    el.addEventListener('input', () => updateCharts());
+    el.addEventListener('keyup', e => {
+        if (e.key === 'Enter') updateCharts();
+    });
+    el.addEventListener('blur', updateCharts);
 });
 
 Object.values(axisColors).forEach(input => {
