@@ -31,31 +31,29 @@
       </div>
 
       <div class="inputs">
-        <!-- Stat inputs with hidden color pickers -->
         <label>Power:
           <input type="number" id="powerInput" step="0.1" min="0">
-          <input type="color" id="powerColor" class="axisColor hidden">
+          <input type="color" id="powerColor" class="axisColor hidden" value="#ff0000">
         </label>
         <label>Speed:
           <input type="number" id="speedInput" step="0.1" min="0">
-          <input type="color" id="speedColor" class="axisColor hidden">
+          <input type="color" id="speedColor" class="axisColor hidden" value="#ffff00">
         </label>
         <label>Trick:
           <input type="number" id="trickInput" step="0.1" min="0">
-          <input type="color" id="trickColor" class="axisColor hidden">
+          <input type="color" id="trickColor" class="axisColor hidden" value="#00ff00">
         </label>
         <label>Recovery:
           <input type="number" id="recoveryInput" step="0.1" min="0">
-          <input type="color" id="recoveryColor" class="axisColor hidden">
+          <input type="color" id="recoveryColor" class="axisColor hidden" value="#00ffff">
         </label>
         <label>Defense:
           <input type="number" id="defenseInput" step="0.1" min="0">
-          <input type="color" id="defenseColor" class="axisColor hidden">
+          <input type="color" id="defenseColor" class="axisColor hidden" value="#0000ff">
         </label>
 
         <label>Ability Color: <input type="color" id="colorPicker" value="#92dfec"></label>
 
-        <!-- Buttons -->
         <button id="multiBtn">Multicolor</button>
         <button id="viewBtn">View Character Chart</button>
       </div>
@@ -66,7 +64,6 @@
     </div>
   </div>
 
-  <!-- Overlay -->
   <div id="overlay" class="overlay hidden">
     <div id="characterBox" class="character-box">
       <button id="closeBtn" class="close-btn">×</button>
