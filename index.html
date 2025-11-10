@@ -4,11 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>UnOrdinary Ability Chart Maker</title>
-
-  <!-- ✅ Favicon -->
-  <link rel="icon" type="image/png" href="IMG_7701-removebg-preview (1).png">
-
-  <!-- Styles and scripts -->
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -34,33 +29,26 @@
       </div>
 
       <div class="inputs">
-        <label>Power:
-          <input type="number" id="powerInput" step="0.1" min="0">
-          <input type="color" id="powerColor" class="axisColor hidden" value="#ff0000">
-        </label>
-        <label>Speed:
-          <input type="number" id="speedInput" step="0.1" min="0">
-          <input type="color" id="speedColor" class="axisColor hidden" value="#ffff00">
-        </label>
-        <label>Trick:
-          <input type="number" id="trickInput" step="0.1" min="0">
-          <input type="color" id="trickColor" class="axisColor hidden" value="#00ff00">
-        </label>
-        <label>Recovery:
-          <input type="number" id="recoveryInput" step="0.1" min="0">
-          <input type="color" id="recoveryColor" class="axisColor hidden" value="#00ffff">
-        </label>
-        <label>Defense:
-          <input type="number" id="defenseInput" step="0.1" min="0">
-          <input type="color" id="defenseColor" class="axisColor hidden" value="#0000ff">
-        </label>
+        <label>Power: <input type="number" id="powerInput" step="0.1" min="0"></label>
+        <label>Speed: <input type="number" id="speedInput" step="0.1" min="0"></label>
+        <label>Trick: <input type="number" id="trickInput" step="0.1" min="0"></label>
+        <label>Recovery: <input type="number" id="recoveryInput" step="0.1" min="0"></label>
+        <label>Defense: <input type="number" id="defenseInput" step="0.1" min="0"></label>
+        <label>Ability Color: <input type="color" id="colorPicker" value="#92dfec"></label>
 
-        <label>Ability Color: 
-          <input type="color" id="colorPicker" value="#92dfec">
-        </label>
+        <!-- New toggle button -->
+        <button id="multiColorBtn">Multi-color</button>
 
-        <button id="multiBtn">Multicolor</button>
         <button id="viewBtn">View Character Chart</button>
+      </div>
+
+      <!-- Axis color pickers (hidden until multicolor mode is active) -->
+      <div id="axisColors" class="hidden">
+        <label>Power Color: <input type="color" id="powerColor" value="#ff0000"></label>
+        <label>Speed Color: <input type="color" id="speedColor" value="#00ff00"></label>
+        <label>Trick Color: <input type="color" id="trickColor" value="#0000ff"></label>
+        <label>Recovery Color: <input type="color" id="recoveryColor" value="#ffff00"></label>
+        <label>Defense Color: <input type="color" id="defenseColor" value="#ff00ff"></label>
       </div>
     </div>
 
@@ -69,6 +57,7 @@
     </div>
   </div>
 
+  <!-- Overlay -->
   <div id="overlay" class="overlay hidden">
     <div id="characterBox" class="character-box">
       <button id="closeBtn" class="close-btn">×</button>
