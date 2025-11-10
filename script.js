@@ -1,10 +1,10 @@
 /*************************
  * GLOBAL STATE
  *************************/
-let charts = [];             // [{ chart, canvas, color, stats[5], multi, axis[5] }]
+let charts = [];
 let activeIndex = 0;
+let radarPopup = null;
 
-let radarPopup = null;       // overlay Chart instance
 const BASE_COLOR = '#92dfec';
 const FILL_ALPHA = 0.65;
 
@@ -108,6 +108,8 @@ const axisTitlesPlugin = {
     const base = -Math.PI / 2;
     const baseRadius = r.drawingArea * 1.1;
 
+    const isPopup = chart.canvas.closest('#overlay') !== null;
+
     ctx.save();
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.font = 'italic 18px Candara';
@@ -117,6 +119,10 @@ const axisTitlesPlugin = {
       const a = base + (i * 2 * Math.PI / labels.length);
       const x = cx + baseRadius * Math.cos(a);
       let y = cy + baseRadius * Math.sin(a);
+
+      // Adjust in popup: raise Speed & Defense
+      if (isPopup && (label === 'Speed' || label === 'Defense')) y -= 25;
+
       if (i === 0) y -= 5; // Power slightly up
       ctx.strokeText(label, x, y);
       ctx.fillText(label, x, y);
@@ -125,11 +131,11 @@ const axisTitlesPlugin = {
   }
 };
 
-/* Parentheses: show only on main radar, live update, max per axis */
+/* Parentheses plugin (main chart only, live max update) */
 const globalValueLabelsPlugin = {
   id: 'globalValueLabels',
   afterDraw(chart) {
-    // Skip popup chart
+    // Only apply to main charts (not popup)
     if (chart.canvas.closest('#overlay')) return;
 
     const ctx = chart.ctx, r = chart.scales.r;
@@ -139,6 +145,7 @@ const globalValueLabelsPlugin = {
     const baseRadius = r.drawingArea * 1.1;
     const offset = 20;
 
+    // Find global max per axis
     const axes = labels.length;
     const maxPerAxis = new Array(axes).fill(0);
     charts.forEach(c => {
@@ -158,7 +165,7 @@ const globalValueLabelsPlugin = {
       const x = cx + (baseRadius + offset) * Math.cos(angle);
       let y = cy + (baseRadius + offset) * Math.sin(angle);
 
-      // Lower Power, Speed, Defense
+      // Lower these slightly
       if (i === 0 || i === 1 || i === 4) y += 20;
 
       const val = Math.round(maxPerAxis[i] * 100) / 100;
@@ -435,17 +442,3 @@ viewBtn.addEventListener('click', () => {
 });
 
 closeBtn.addEventListener('click', () => overlay.classList.add('hidden'));
-
-downloadBtn.addEventListener('click', () => {
-  downloadBtn.style.visibility = 'hidden';
-  closeBtn.style.visibility = 'hidden';
-  html2canvas(document.getElementById('characterBox'), { scale: 2 }).then(canvas => {
-    const link = document.createElement('a');
-    const cleanName = (nameInput.value || 'Unnamed').replace(/\s+/g, '_');
-    link.download = `${cleanName}_CharacterChart.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-    downloadBtn.style.visibility = 'visible';
-    closeBtn.style.visibility = 'visible';
-  });
-});
