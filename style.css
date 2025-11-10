@@ -324,3 +324,9 @@ button:hover {
     font-size: 26px;
   }
 }
+.stacked-chart{position:absolute;top:0;left:0;}
+.popup-watermark{
+  position:absolute;bottom:12px;left:14px;
+  font-size:14px;font-weight:bold;font-family:Candara,sans-serif;
+  color:rgba(0,0,0,0.03);pointer-events:none;user-select:none;
+}
