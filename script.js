@@ -69,7 +69,7 @@ const fixedCenterPlugin = {
   }
 };
 
-/* === BACKGROUND PENTAGON AND SPOKES === */
+/* === BACKGROUND PENTAGON + SPOKES === */
 const radarBackgroundPlugin = {
   id: 'customPentagonBackground',
   beforeDatasetsDraw(chart) {
@@ -132,7 +132,7 @@ const radarBackgroundPlugin = {
   }
 };
 
-/* === OUTLINED LABELS === */
+/* === OUTLINED LABELS (MATCH ABILITY COLOR) === */
 const outlinedLabelsPlugin = {
   id: 'outlinedLabels',
   afterDraw(chart) {
@@ -142,12 +142,13 @@ const outlinedLabelsPlugin = {
     const cx = r.xCenter, cy = r.yCenter;
     const baseRadius = r.drawingArea * 1.1;
     const base = -Math.PI / 2;
+    const labelColor = chart.config.options.abilityColor || chartColor;
 
     ctx.save();
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = 'italic 18px Candara';
-    ctx.strokeStyle = chartColor;
+    ctx.strokeStyle = labelColor;
     ctx.fillStyle = 'white';
     ctx.lineWidth = 4;
 
@@ -204,6 +205,7 @@ function makeRadar(ctx, showPoints = true, withBackground = false, fixedCenter =
       },
       customBackground: { enabled: withBackground },
       fixedCenter: { enabled: !!fixedCenter, centerX: fixedCenter?.x, centerY: fixedCenter?.y },
+      abilityColor: chartColor,
       plugins: { legend: { display: false } }
     },
     plugins: [fixedCenterPlugin, radarBackgroundPlugin, outlinedLabelsPlugin]
@@ -261,6 +263,10 @@ function updateCharts() {
   const maxVal = Math.max(...vals, 10);
   const cappedVals = vals.map(v => Math.min(v, 10));
 
+  // sync ability color to charts
+  if (radar1) radar1.options.abilityColor = chartColor;
+  if (radar2) radar2.options.abilityColor = chartColor;
+
   if (radar1) {
     radar1.options.scales.r.suggestedMax = maxVal;
     radar1.data.datasets[0].data = vals;
@@ -274,6 +280,10 @@ function updateCharts() {
     radar2.data.datasets[0].pointBorderColor = chartColor;
     radar2.update();
   }
+
+  // update text color of buttons to ability color
+  multiBtn.style.color = chartColor;
+  viewBtn.style.color = chartColor;
 }
 
 /* === MULTICOLOR TOGGLE === */
@@ -281,7 +291,10 @@ multiBtn.addEventListener('click', () => {
   isMulticolor = !isMulticolor;
   multiBtn.textContent = isMulticolor ? 'Single Color' : 'Multicolor';
   Object.values(axisColors).forEach(el => el.classList.toggle('hidden', !isMulticolor));
-  colorPicker.classList.toggle('hidden', isMulticolor);
+  // Default axis colors = ability color
+  if (isMulticolor) {
+    Object.values(axisColors).forEach(el => el.value = chartColor);
+  }
   updateCharts();
 });
 
@@ -332,7 +345,7 @@ viewBtn.addEventListener('click', () => {
         left: '10px',
         fontFamily: 'Candara',
         fontWeight: 'bold',
-        fontSize: '9px', // ⬅️ increased 50%
+        fontSize: '9px', // 50% larger
         color: 'rgba(0,0,0,0.15)',
         pointerEvents: 'none',
         zIndex: '2'
