@@ -115,7 +115,7 @@ const radarBackgroundPlugin = {
   }
 };
 
-/* === OUTLINED LABELS + VALUE PARENTHESIS === */
+/* === OUTLINED LABELS + VALUE PARENTHESIS (STYLED) === */
 const outlinedLabelsPlugin = {
   id: 'outlinedLabels',
   afterDraw(chart) {
@@ -132,9 +132,9 @@ const outlinedLabelsPlugin = {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = 'italic 18px Candara';
+    ctx.lineWidth = 4;
     ctx.strokeStyle = labelColor;
     ctx.fillStyle = 'white';
-    ctx.lineWidth = 4;
 
     labels.forEach((label, i) => {
       const angle = base + (i * 2 * Math.PI / labels.length);
@@ -142,17 +142,28 @@ const outlinedLabelsPlugin = {
       const x = cx + radius * Math.cos(angle);
       const y = cy + radius * Math.sin(angle);
 
-      // draw main label
+      // --- Label with white fill and colored border ---
       ctx.strokeText(label, x, y);
       ctx.fillText(label, x, y);
 
+      // --- Value (parenthesis) below labels for radar1 ---
       if (isChart1) {
-        // draw value below label
-        ctx.font = 'italic 14px Candara';
-        ctx.fillStyle = 'black';
         const val = `(${dataValues[i].toFixed(1)})`;
-        const offsetY = y + 20;
-        ctx.fillText(val, x, offsetY);
+        ctx.font = 'italic 14px Candara';
+        ctx.textAlign = 'center';
+
+        // Defense & Speed should have white text
+        if (label === 'Defense' || label === 'Speed') {
+          ctx.fillStyle = 'white';
+          ctx.strokeStyle = 'black';
+          ctx.lineWidth = 2;
+          ctx.strokeText(val, x, y + 20);
+          ctx.fillText(val, x, y + 20);
+        } else {
+          ctx.fillStyle = 'black';
+          ctx.strokeStyle = 'transparent';
+          ctx.fillText(val, x, y + 20);
+        }
       }
     });
     ctx.restore();
@@ -254,8 +265,6 @@ function updateCharts() {
   ];
 
   const newColor = colorPicker.value;
-
-  // when ability color changes, update all axis colors
   if (chartColor !== newColor) {
     chartColor = newColor;
     Object.values(axisColors).forEach(el => el.value = chartColor);
