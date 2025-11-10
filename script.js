@@ -3,13 +3,9 @@
 ======================= */
 let radar1, radar2;
 let radar2Ready = false;
-
-// Ability color (single-color mode base)
 let chartColor = '#92dfec';
-
-// Mode + axis color state
 let multiColorMode = false;
-let lastAbilityColor = chartColor; // track to auto-propagate ability color
+let lastAbilityColor = chartColor;
 
 /* =======================
    HELPERS
@@ -23,36 +19,26 @@ function hexToRGBA(hex, alpha) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-/**
- * Conic gradient centered at the chart center.
- * Color at each axis angle = axis color; mid-wedge is the blend.
- */
+/* === FIXED conic gradient (now Trick–Speed blends correctly) === */
 function makeConicGradient(chart, axisColors, alpha = 0.65) {
   const r = chart.scales.r;
   const ctx = chart.ctx;
   const cx = r.xCenter, cy = r.yCenter;
   const N = chart.data.labels.length;
-  const start = -Math.PI / 2;
 
-  const grad = ctx.createConicGradient(0, cx, cy);
+  // Align top (Power) to start
+  const angleOffset = -Math.PI / 2;
+  const grad = ctx.createConicGradient(angleOffset, cx, cy);
 
-  // Add stops at each axis angle with the axis color.
-  for (let i = 0; i < N; i++) {
-    const angle = start + (i * 2 * Math.PI / N);
-    let t = (angle % (2 * Math.PI));
-    if (t < 0) t += 2 * Math.PI;
-    const stop = t / (2 * Math.PI);
-    grad.addColorStop(stop, hexToRGBA(axisColors[i], alpha));
+  // Evenly spaced stops (0 → 1) around full circle
+  for (let i = 0; i <= N; i++) {
+    const t = i / N;
+    grad.addColorStop(t, hexToRGBA(axisColors[i % N], alpha));
   }
-  // ✅ FIXED: ensures Trick–Speed wedge blends smoothly
-  grad.addColorStop(1, hexToRGBA(axisColors[1], alpha));
 
   return grad;
 }
 
-/**
- * Compute dataset background based on mode.
- */
 function computeFill(chart, values, abilityHex, axisPickers) {
   if (!multiColorMode) return hexToRGBA(abilityHex, 0.65);
   const cols = axisPickers.map(p => p.value || abilityHex);
@@ -144,7 +130,6 @@ const outlinedLabelsPlugin = {
     const baseRadius = r.drawingArea * 1.1;
     const extendedRadius = r.drawingArea * 1.15;
     const base = -Math.PI / 2;
-
     ctx.save();
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -152,7 +137,6 @@ const outlinedLabelsPlugin = {
     ctx.strokeStyle = chartColor;
     ctx.fillStyle = 'white';
     ctx.lineWidth = 4;
-
     labels.forEach((label, i) => {
       let angle = base + (i * 2 * Math.PI / labels.length);
       let radiusToUse = baseRadius;
@@ -304,6 +288,7 @@ function updateCharts() {
   ];
   const capped = vals.map(v => Math.min(v, 10));
   chartColor = colorPicker.value || chartColor;
+
   if (radar1) {
     const fill1 = computeFill(radar1, vals, chartColor, axisColorPickers);
     radar1.data.datasets[0].data = vals;
@@ -311,6 +296,7 @@ function updateCharts() {
     radar1.data.datasets[0].backgroundColor = fill1;
     radar1.update();
   }
+
   if (radar2Ready && radar2) {
     const fill2 = computeFill(radar2, capped, chartColor, axisColorPickers);
     radar2.data.datasets[0].data = capped;
@@ -338,31 +324,15 @@ colorPicker.addEventListener('input', () => {
   lastAbilityColor = newAbility;
   updateCharts();
 });
-colorPicker.addEventListener('change', () => {
-  const newAbility = colorPicker.value;
-  axisColorPickers.forEach(p => {
-    if (p.value.toLowerCase() === lastAbilityColor.toLowerCase()) {
-      p.value = newAbility;
-    }
-  });
-  lastAbilityColor = newAbility;
-  updateCharts();
-});
 
 axisColorPickers.forEach(p => {
   p.addEventListener('input', () => multiColorMode && updateCharts());
-  p.addEventListener('change', () => multiColorMode && updateCharts());
 });
 
 multiColorBtn.addEventListener('click', () => {
   multiColorMode = !multiColorMode;
   axisColorsDiv.style.display = multiColorMode ? 'flex' : 'none';
   multiColorBtn.textContent = multiColorMode ? 'Single-color' : 'Multi-color';
-  if (multiColorMode) {
-    axisColorPickers.forEach(p => {
-      if (!p.value) p.value = colorPicker.value || '#92dfec';
-    });
-  }
   updateCharts();
 });
 
@@ -381,39 +351,10 @@ viewBtn.addEventListener('click', () => {
   overlayAbility.textContent = abilityInput.value || '-';
   overlayLevel.textContent = levelInput.value || '-';
   setTimeout(() => {
-    const img = document.getElementById('overlayImg');
-    const textBox = document.querySelector('.text-box');
-    const overlayChart = document.querySelector('.overlay-chart');
-    const imgHeight = img.offsetHeight;
-    const textHeight = textBox.offsetHeight;
-    const targetSize = (imgHeight + textHeight) * CHART_SIZE_MULTIPLIER;
-    overlayChart.style.height = `${targetSize}px`;
-    overlayChart.style.width = `${targetSize}px`;
-    const existingWatermark = document.querySelector('.image-section .watermark-image');
-    if (!existingWatermark) {
-      const wm = document.createElement('div');
-      wm.textContent = 'AS';
-      wm.className = 'watermark-image';
-      Object.assign(wm.style, {
-        position: 'absolute',
-        bottom: '8px',
-        left: '10px',
-        fontFamily: 'Candara',
-        fontWeight: 'bold',
-        fontSize: '6px',
-        color: 'rgba(0,0,0,0.15)',
-        pointerEvents: 'none',
-        zIndex: '2'
-      });
-      document.querySelector('.image-section').appendChild(wm);
-    }
     const ctx2 = document.getElementById('radarChart2').getContext('2d');
     if (!radar2Ready) {
-      radar2 = makeRadar(ctx2, false, true, { x: targetSize / 2, y: targetSize / 2 });
-      radar2.options.scales.r.suggestedMax = 10;
+      radar2 = makeRadar(ctx2, false, true, { x: 200, y: 200 });
       radar2Ready = true;
-    } else {
-      radar2.resize();
     }
     updateCharts();
   }, 200);
