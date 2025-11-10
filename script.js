@@ -1,4 +1,4 @@
-let charts = [];
+let charts = []; // [{chart, canvas, color, stats[5], multi, axis[5]}]
 let activeChart = 0;
 let radar2, radar2Ready = false;
 
@@ -12,7 +12,7 @@ function hexToRGBA(hex, alpha) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-function makeConicGradient(chart, axisColors, alpha = 0.6) {
+function makeConicGradient(chart, axisColors, alpha = 0.45) {
   const r = chart.scales.r;
   const ctx = chart.ctx;
   const grad = ctx.createConicGradient(-Math.PI / 2, r.xCenter, r.yCenter);
@@ -46,7 +46,7 @@ function makeRadar(ctx, color, data) {
           ticks: { display: false },
           pointLabels: { color: "transparent" },
           min: 0,
-          max: 10 // base scale out of 10
+          max: 10 // base scale out of 10 (never below)
         }
       },
       plugins: { legend: { display: false } }
@@ -54,7 +54,7 @@ function makeRadar(ctx, color, data) {
   });
 }
 
-/* ========== DOM REFERENCES ========== */
+/* ========== DOM REFS ========== */
 const chartArea = document.getElementById("chartArea");
 const addChartBtn = document.getElementById("addChartBtn");
 const chartButtons = document.getElementById("chartButtons");
@@ -87,7 +87,7 @@ const nameInput = document.getElementById("nameInput");
 const abilityInput = document.getElementById("abilityInput");
 const levelInput = document.getElementById("levelInput");
 
-/* ========== GLOBAL SCALE HANDLING ========== */
+/* ========== GLOBAL SCALE (shared across all charts) ========== */
 function getGlobalMax() {
   let maxVal = 10;
   charts.forEach(c => {
@@ -97,16 +97,17 @@ function getGlobalMax() {
   return Math.ceil(maxVal);
 }
 
-function updateGlobalScale() {
-  const newMax = getGlobalMax();
-  const appliedMax = newMax < 10 ? 10 : newMax;
+function applyGlobalScale() {
+  const max = getGlobalMax();
+  const applied = max < 10 ? 10 : max;
   charts.forEach(c => {
     c.chart.options.scales.r.min = 0;
-    c.chart.options.scales.r.max = appliedMax;
+    c.chart.options.scales.r.max = applied;
     c.chart.update();
   });
   if (radar2Ready && radar2) {
-    radar2.options.scales.r.max = appliedMax;
+    radar2.options.scales.r.min = 0;
+    radar2.options.scales.r.max = applied;
     radar2.update();
   }
 }
@@ -124,7 +125,7 @@ window.addEventListener("load", () => {
     axis: axisColorPickers.map(p => p.value)
   });
   updateInputs();
-  updateGlobalScale();
+  applyGlobalScale();
 });
 
 /* ========== INPUT SYNC ========== */
@@ -163,7 +164,7 @@ function addChart() {
   btn.addEventListener("click", () => selectChart(i));
   chartButtons.appendChild(btn);
 
-  updateGlobalScale();
+  applyGlobalScale();
   selectChart(i);
 }
 
@@ -176,16 +177,16 @@ function selectChart(index) {
     b.style.color = i === index ? "white" : "black";
   });
 
-  // Keep all charts fully visible
+  // Bring active canvas to front; keep ALL fully opaque
   charts.forEach((c, i) => {
     c.canvas.style.zIndex = i === index ? "2" : "1";
-    c.chart.canvas.style.opacity = "1"; // no dimming
+    c.chart.canvas.style.opacity = "1"; // no dimming anywhere
   });
 
   updateInputs(index);
 }
 
-/* ========== UPDATE CHARTS + SCALE ========== */
+/* ========== UPDATE ACTIVE + REDRAW ALL ========== */
 function refreshActive() {
   const c = charts[activeChart];
   c.stats = [
@@ -198,12 +199,12 @@ function refreshActive() {
   c.color = colorPicker.value;
   c.axis = axisColorPickers.map(p => p.value);
 
-  updateGlobalScale();
+  applyGlobalScale(); // keeps shared out-of-10 base and expands if needed
 
   charts.forEach(obj => {
     const fill = obj.multi
       ? makeConicGradient(obj.chart, obj.axis, 0.45)
-      : hexToRGBA(obj.color, 0.4);
+      : hexToRGBA(obj.color, 0.45);
     obj.chart.data.datasets[0].data = obj.stats;
     obj.chart.data.datasets[0].borderColor = obj.color;
     obj.chart.data.datasets[0].backgroundColor = fill;
@@ -211,7 +212,7 @@ function refreshActive() {
   });
 }
 
-/* ========== EVENT LISTENERS ========== */
+/* ========== EVENTS ========== */
 addChartBtn.addEventListener("click", addChart);
 [multiColorBtn, colorPicker, powerInput, speedInput, trickInput, recoveryInput, defenseInput]
   .forEach(el => el.addEventListener("input", refreshActive));
@@ -225,9 +226,8 @@ multiColorBtn.addEventListener("click", () => {
   refreshActive();
 });
 
-/* ========== POPUP ========== */
+/* ========== POPUP (SHOW ALL CHARTS OVERLAPPED) ========== */
 viewBtn.addEventListener("click", () => {
-  const c = charts[activeChart];
   overlay.classList.remove("hidden");
   overlayImg.src = uploadedImg.src;
   overlayName.textContent = nameInput.value || "-";
@@ -236,20 +236,61 @@ viewBtn.addEventListener("click", () => {
 
   setTimeout(() => {
     const ctx2 = document.getElementById("radarChart2").getContext("2d");
-    if (!radar2Ready) {
-      radar2 = makeRadar(ctx2, c.color, c.stats);
-      radar2Ready = true;
-    }
-    const fill = c.multi ? makeConicGradient(radar2, c.axis, 0.45) : hexToRGBA(c.color, 0.4);
-    const sharedMax = getGlobalMax();
+    const globalMax = getGlobalMax();
+    const datasets = charts.map((obj, idx) => ({
+      data: obj.stats.slice(),
+      // provisional fill (we’ll convert to gradient after first render)
+      backgroundColor: obj.multi ? hexToRGBA(obj.color, 0.35) : hexToRGBA(obj.color, 0.35),
+      borderColor: obj.color,
+      borderWidth: 2,
+      pointRadius: 0
+    }));
 
-    radar2.options.scales.r.min = 0;
-    radar2.options.scales.r.max = sharedMax < 10 ? 10 : sharedMax;
-    radar2.data.datasets[0].data = c.stats;
-    radar2.data.datasets[0].borderColor = c.color;
-    radar2.data.datasets[0].backgroundColor = fill;
-    radar2.update();
-  }, 150);
+    if (!radar2Ready) {
+      radar2 = new Chart(ctx2, {
+        type: "radar",
+        data: {
+          labels: ["Power", "Speed", "Trick", "Recovery", "Defense"],
+          datasets
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          scales: {
+            r: {
+              grid: { display: false },
+              angleLines: { color: "#6db5c0" },
+              ticks: { display: false },
+              pointLabels: { color: "transparent" },
+              min: 0,
+              max: globalMax < 10 ? 10 : globalMax
+            }
+          },
+          plugins: { legend: { display: false } }
+        }
+      });
+      radar2Ready = true;
+    } else {
+      radar2.options.scales.r.min = 0;
+      radar2.options.scales.r.max = globalMax < 10 ? 10 : globalMax;
+      radar2.data.labels = ["Power", "Speed", "Trick", "Recovery", "Defense"];
+      radar2.data.datasets = datasets;
+      radar2.update();
+    }
+
+    // After the popup chart has computed its center, convert fills for multi-color datasets
+    requestAnimationFrame(() => {
+      radar2.data.datasets.forEach((ds, i) => {
+        const src = charts[i];
+        if (src.multi) {
+          ds.backgroundColor = makeConicGradient(radar2, src.axis, 0.35);
+        } else {
+          ds.backgroundColor = hexToRGBA(src.color, 0.35);
+        }
+      });
+      radar2.update();
+    });
+  }, 100);
 });
 
 closeBtn.addEventListener("click", () => overlay.classList.add("hidden"));
