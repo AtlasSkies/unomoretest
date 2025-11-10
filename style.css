@@ -163,12 +163,10 @@ button:hover {
   display: none;
 }
 
-/* Added for Version 2 compatibility */
 .axisColor.hidden { 
   display: none !important; 
 } 
 
-/* Existing overlay styles */
 .character-box {
   background: #fff;
   width: 52vw;
@@ -240,7 +238,7 @@ button:hover {
   font-weight: bold;
 }
 
-/* === MOBILE LAYOUT FOR VIEW CHARACTER CHART (Dynamic Height) === */
+/* === MOBILE VIEW === */
 @media (max-width: 768px) {
   .character-box {
     flex-direction: column;
