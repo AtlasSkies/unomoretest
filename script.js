@@ -38,8 +38,8 @@ const segmentedFillPlugin = {
 
         const ctx = chart.ctx;
         const r = chart.scales.r;
-        const dataset = chart.data.datasets[0];
-        const data = dataset.data;
+        const meta = chart.getDatasetMeta(0); // Get dataset metadata
+        const dataPoints = meta.data; // Array of chart-calculated point elements
         const N = chart.data.labels.length;
         const cx = r.xCenter, cy = r.yCenter;
         const colors = getAxisColors();
@@ -50,18 +50,17 @@ const segmentedFillPlugin = {
 
         // Draw solid-filled wedges between each pair of axes
         for (let i = 0; i < N; i++) {
-            const currentVal = data[i] || 0;
-            const nextVal = data[(i + 1) % N] || 0;
-            const pt1 = r.getPointPosition(i, currentVal);
-            const pt2 = r.getPointPosition((i + 1) % N, nextVal);
+            // Use the points calculated by Chart.js for the dataset line
+            const pt1 = dataPoints[i]; 
+            const pt2 = dataPoints[(i + 1) % N];
             
             // Use the solid color of the current axis for the wedge fill.
-            // This is more reliable than using a linear gradient across the edge.
             const solidFillColor = hexToRGBA(colors[i], 1.0); 
 
             ctx.beginPath();
             ctx.moveTo(cx, cy);
-            ctx.lineTo(pt1.x, pt1.y);
+            // We use pt1.x and pt1.y which are the coordinates already computed by the chart
+            ctx.lineTo(pt1.x, pt1.y); 
             ctx.lineTo(pt2.x, pt2.y);
             ctx.closePath();
             ctx.fillStyle = solidFillColor;
