@@ -30,9 +30,7 @@ function getAxisColors() {
 
 /* New function to create a gradient for a segment */
 function createSegmentGradient(ctx, cx, cy, p1, p2, color1, color2) {
-    // Determine the gradient line (e.g., from the center out along the bisector, or across the base)
-    // For a smooth transition between wedges, we'll create a simple linear gradient
-    // from the starting point (p1) to the ending point (p2) of the arc.
+    // Create a linear gradient from the first point to the second point on the perimeter.
     const gradient = ctx.createLinearGradient(p1.x, p1.y, p2.x, p2.y);
     gradient.addColorStop(0, hexToRGBA(color1, 0.85)); // Start color (with opacity)
     gradient.addColorStop(1, hexToRGBA(color2, 0.85)); // End color (with opacity)
@@ -41,7 +39,7 @@ function createSegmentGradient(ctx, cx, cy, p1, p2, color1, color2) {
 
 /* === PLUGINS === */
 
-// Plugin to draw colored wedges (for multicolor mode) - MODIFIED
+// Plugin to draw colored wedges (for multicolor mode) - Gradient Enabled
 const segmentedFillPlugin = {
     id: 'segmentedFill',
     beforeDatasetsDraw(chart, args, options) {
@@ -67,9 +65,10 @@ const segmentedFillPlugin = {
             // Next wedge color (end color of the gradient)
             const color2 = colors[(i + 1) % N]; 
 
-            // Create a gradient that transitions from color1 to color2 across the segment
+            // Create the gradient between the two perimeter points
             const gradient = createSegmentGradient(ctx, cx, cy, pt1, pt2, color1, color2);
             
+            // Draw the wedge (triangle) from center to pt1 to pt2
             ctx.beginPath();
             ctx.moveTo(cx, cy);
             ctx.lineTo(pt1.x, pt1.y);
@@ -84,7 +83,7 @@ const segmentedFillPlugin = {
     },
 };
 
-// Plugin for background and spokes
+// Plugin for background and spokes (Used only for the downloadable chart)
 const radarGridPlugin = {
     id: 'customPentagonBackground',
     beforeDatasetsDraw(chart) {
@@ -147,6 +146,7 @@ const radarGridPlugin = {
     }
 };
 
+// Plugin to ensure the chart center is fixed (useful for the download box)
 const fixedCenterPlugin = {
     id: 'fixedCenter',
     beforeLayout(chart) {
@@ -160,6 +160,7 @@ const fixedCenterPlugin = {
     }
 };
 
+// Plugin to draw axis labels manually (to allow custom styling/colors)
 const outlinedLabelsPlugin = {
     id: 'outlinedLabels',
     afterDraw(chart) {
@@ -191,6 +192,7 @@ const outlinedLabelsPlugin = {
     }
 };
 
+// Plugin to display input values next to the labels (only for the live chart)
 const inputValuePlugin = {
     id: 'inputValuePlugin',
     afterDraw(chart) {
@@ -206,9 +208,9 @@ const inputValuePlugin = {
         const currentChartColor = chart.config.options.abilityColor;
 
         ctx.save();
-        ctx.font = '15px Candara';
-        ctx.fillStyle = 'white';
-        ctx.strokeStyle = currentChartColor;
+        ctx.font = '600 15px Candara';
+        ctx.fillStyle = currentChartColor;
+        ctx.strokeStyle = 'white';
         ctx.lineWidth = 2;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
@@ -336,7 +338,7 @@ function updateCharts() {
     ];
 
     const maxVal = Math.max(...vals, 10);
-    const scaleMultiplier = 1.0; // adjust if needed (1.2 = slightly larger)
+    const scaleMultiplier = 1.0; 
     const scaledVals = vals.map(v => v * scaleMultiplier);
 
     chartColor = colorPicker.value || chartColor;
@@ -355,7 +357,6 @@ function updateCharts() {
 
         if (isMulticolor) {
             chart.options.plugins.segmentedFill.enabled = true;
-            // Set background to transparent when using the segmented fill plugin
             chart.data.datasets[0].backgroundColor = 'rgba(0,0,0,0)'; 
         } else {
             chart.options.plugins.segmentedFill.enabled = false;
@@ -432,10 +433,7 @@ viewBtn.addEventListener('click', () => {
     overlayLevel.textContent = levelInput.value || 'N/A';
 
     setTimeout(() => {
-        const overlayChart = document.querySelector('.overlay-chart');
-        const targetSize = 400;
-        overlayChart.style.height = `${targetSize}px`;
-        overlayChart.style.width = `${targetSize}px`;
+        const targetSize = 400; 
 
         const ctx2 = document.getElementById('radarChart2').getContext('2d');
         if (!radar2Ready) {
@@ -446,7 +444,7 @@ viewBtn.addEventListener('click', () => {
             radar2.resize();
         }
         updateCharts();
-    }, 200);
+    }, 50); 
 });
 
 closeBtn.addEventListener('click', () => overlay.classList.add('hidden'));
@@ -457,6 +455,7 @@ downloadBtn.addEventListener('click', () => {
     closeBtn.style.visibility = 'hidden';
 
     const box = document.getElementById('characterBox');
+    
     html2canvas(box, { scale: 3 }).then(canvas => {
         const link = document.createElement('a');
         const cleanName = (nameInput.value || 'Unnamed').replace(/\s+/g, '_');
