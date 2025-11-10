@@ -7,6 +7,10 @@ const CHART1_CENTER = { x: 247, y: 250 };
 const CHART_SCALE_FACTOR = 1.0;
 const CHART_SIZE_MULTIPLIER = 1.0;
 
+// Fixed colors for the spokes and polygon border, as requested
+const FIXED_BORDER_COLOR = '#493e3b';
+const FIXED_SPOKE_COLOR = '#6db5c0';
+
 /* === UTILITIES === */
 function hexToRGBA(hex, alpha) {
   if (hex.startsWith('rgb')) return hex.replace(')', `, ${alpha})`).replace('rgb', 'rgba');
@@ -25,38 +29,6 @@ function getAxisColors() {
     axisColors.recovery.value,
     axisColors.defense.value
   ];
-}
-
-/* === NEW: Gradient function for axes === */
-function createAxisGradient(chart) {
-    const ctx = chart.ctx;
-    const r = chart.scales.r;
-    const cx = r.xCenter, cy = r.yCenter;
-    const radius = r.drawingArea;
-    const N = chart.data.labels.length;
-    const start = -Math.PI / 2;
-    const currentColors = getAxisColors();
-    const gradients = [];
-
-    // Helper to get angle point
-    const getPoint = (i, factor = 1) => {
-        const a = start + (i * 2 * Math.PI / N);
-        const x = cx + (radius * factor) * Math.cos(a);
-        const y = cy + (radius * factor) * Math.sin(a);
-        return { x, y };
-    };
-
-    // Create a linear gradient for each axis line (0 to 1.1 times radius)
-    for (let i = 0; i < N; i++) {
-        const { x: x1, y: y1 } = getPoint(i, 0); // Center point
-        const { x: x2, y: y2 } = getPoint(i, 1.1); // Beyond drawing area for smooth axis end
-
-        const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
-        gradient.addColorStop(0, hexToRGBA(currentColors[i], 0.1)); // Start faded
-        gradient.addColorStop(1, currentColors[i]); // End in full color
-        gradients.push(gradient);
-    }
-    return gradients;
 }
 
 /* === PLUGINS === */
@@ -107,11 +79,8 @@ const radarBackgroundPlugin = {
     const cx = r.xCenter, cy = r.yCenter, radius = r.drawingArea;
     const N = chart.data.labels.length, start = -Math.PI / 2;
 
-    const isAxisGradientEnabled = chart.config.options.axisGradient?.enabled && chart.canvas.id !== 'radarChart2';
-    const axisGradients = isAxisGradientEnabled ? createAxisGradient(chart) : null;
-
     ctx.save();
-    // Draw axes
+    // Draw axes (spokes)
     ctx.beginPath();
     for (let i = 0; i < N; i++) {
       const a = start + (i * 2 * Math.PI / N);
@@ -119,18 +88,10 @@ const radarBackgroundPlugin = {
       const y = cy + radius * Math.sin(a);
       ctx.moveTo(cx, cy);
       ctx.lineTo(x, y);
-        if (isAxisGradientEnabled) {
-            ctx.strokeStyle = axisGradients[i];
-            ctx.lineWidth = 2; // Make lines a bit thicker for gradient visibility
-            ctx.stroke();
-            ctx.beginPath(); // Start new path for the next axis
-        }
     }
-    if (!isAxisGradientEnabled) { // Only stroke once if not using individual gradient strokes
-        ctx.strokeStyle = '#35727d';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-    }
+    ctx.strokeStyle = '#35727d';
+    ctx.lineWidth = 1;
+    ctx.stroke();
     
     // Draw outer border
     ctx.beginPath();
@@ -228,36 +189,6 @@ const inputValuePlugin = {
   }
 };
 
-// NEW PLUGIN for individual axis line drawing in multicolor mode (only for radar1)
-const axisGradientPlugin = {
-    id: 'axisGradientPlugin',
-    afterDraw(chart) {
-        if (!chart.config.options.axisGradient?.enabled || chart.canvas.id === 'radarChart2') return;
-
-        const r = chart.scales.r, ctx = chart.ctx;
-        const cx = r.xCenter, cy = r.yCenter, radius = r.drawingArea;
-        const N = chart.data.labels.length, start = -Math.PI / 2;
-        const axisGradients = createAxisGradient(chart);
-
-        ctx.save();
-        for (let i = 0; i < N; i++) {
-            const a = start + (i * 2 * Math.PI / N);
-            const x = cx + radius * Math.cos(a);
-            const y = cy + radius * Math.sin(a);
-            
-            ctx.beginPath();
-            ctx.moveTo(cx, cy);
-            ctx.lineTo(x, y);
-
-            // Use the gradient for the axis line
-            ctx.strokeStyle = axisGradients[i];
-            ctx.lineWidth = 2; // Thicker lines for better gradient visibility
-            ctx.stroke();
-        }
-        ctx.restore();
-    }
-};
-
 /* === CHART CREATOR === */
 function makeRadar(ctx, showPoints = true, withBackground = false, fixedCenter = null) {
   return new Chart(ctx, {
@@ -267,10 +198,11 @@ function makeRadar(ctx, showPoints = true, withBackground = false, fixedCenter =
       datasets: [{
         data: [0, 0, 0, 0, 0],
         backgroundColor: hexToRGBA(chartColor, 0.65),
-        borderColor: chartColor,
+        // Use fixed colors by default
+        borderColor: FIXED_BORDER_COLOR,
         borderWidth: 2,
         pointBackgroundColor: '#fff',
-        pointBorderColor: chartColor,
+        pointBorderColor: FIXED_BORDER_COLOR,
         pointRadius: showPoints ? 5 : 0
       }]
     },
@@ -281,7 +213,7 @@ function makeRadar(ctx, showPoints = true, withBackground = false, fixedCenter =
       scales: {
         r: {
           grid: { display: false },
-          angleLines: { color: '#6db5c0', lineWidth: 1 }, // This will be overridden by the plugin if using gradient
+          angleLines: { color: FIXED_SPOKE_COLOR, lineWidth: 1 }, // Set to fixed color
           suggestedMin: 0,
           suggestedMax: 10,
           ticks: { display: false },
@@ -290,13 +222,10 @@ function makeRadar(ctx, showPoints = true, withBackground = false, fixedCenter =
       },
       customBackground: { enabled: withBackground },
       fixedCenter: { enabled: !!fixedCenter, centerX: fixedCenter?.x, centerY: fixedCenter?.y },
-      axisGradient: { enabled: false }, // NEW OPTION
       abilityColor: chartColor,
       plugins: { legend: { display: false } }
     },
-    plugins: withBackground 
-        ? [fixedCenterPlugin, radarBackgroundPlugin, outlinedLabelsPlugin, inputValuePlugin]
-        : [fixedCenterPlugin, outlinedLabelsPlugin, inputValuePlugin, axisGradientPlugin] // Add gradient plugin to radar1
+    plugins: [fixedCenterPlugin, radarBackgroundPlugin, outlinedLabelsPlugin, inputValuePlugin]
   });
 }
 
@@ -357,10 +286,9 @@ function updateCharts() {
   const fill = hexToRGBA(chartColor, 0.65);
   const capped = vals.map(v => Math.min(v, 10));
 
-  let borderColors, pointBorderColors, backgroundColors;
+  let backgroundColors;
     
-  // Requirement: When in multicolor mode, the ability color wheel should still be visible.
-  // When the user selects the ability color, all axis colors should automatically change to that color
+  // Logic for multicolor/single color based on user selection
   if (isMulticolor) {
     // If not manually selected, keep syncing with main colorPicker
     Object.values(axisColors).forEach(input => {
@@ -369,9 +297,7 @@ function updateCharts() {
         }
     });
     const colors = getAxisColors();
-    borderColors = colors;
-    pointBorderColors = colors;
-    // create gradient fill for the polygon
+    // Create gradient fill for the polygon
     const ctx = radar1.ctx;
     const gradient = ctx.createLinearGradient(0, 0, radar1.width, radar1.height);
     const stops = colors.length - 1;
@@ -379,15 +305,11 @@ function updateCharts() {
     backgroundColors = gradient;
 
   } else {
-    // Requirement: "single color" button should be the same color as "multicolor" button
-    // This means when in single color mode, the axis colors should be synced to the main colorPicker.
-    // Reset axis color inputs to main color
+    // Single color mode: sync all axis inputs to main color and use solid fill
     Object.values(axisColors).forEach(input => {
       input.value = chartColor;
-      input.dataset.userSelected = false; // Reset manual selection
+      input.dataset.userSelected = false; 
     });
-    borderColors = chartColor;
-    pointBorderColors = chartColor;
     backgroundColors = fill;
   }
     
@@ -396,22 +318,18 @@ function updateCharts() {
     chart.options.scales.r.suggestedMax = i === 0 ? maxVal : 10;
     chart.options.abilityColor = chartColor;
     
-    // Toggle axis gradient plugin (Requirement: each axis should be the selected color and should be a gradience)
-    // Only applies to radar1 (the main chart) as radar2 has a background plugin.
-    if (i === 0) {
-        chart.options.axisGradient.enabled = isMulticolor;
-        
-        // Remove default angleLines color/width if we are using the gradient plugin
-        chart.options.scales.r.angleLines.color = isMulticolor ? 'transparent' : '#6db5c0';
-        chart.options.scales.r.angleLines.lineWidth = isMulticolor ? 0 : 1;
-    }
+    // Set spokes to fixed color in both charts/modes
+    chart.options.scales.r.angleLines.color = FIXED_SPOKE_COLOR;
+    chart.options.scales.r.angleLines.lineWidth = 1;
     
     chart.data.datasets[0].data = i === 0 ? vals : capped;
-    // Requirement: The outline of the colored part of the radar chart should be the selected ability color
-    // This uses the single chartColor for the border when NOT in multicolor mode, and the axis colors in multicolor mode.
-    chart.data.datasets[0].borderColor = isMulticolor ? borderColors : chartColor; 
+    // Set border and point border to fixed color (as requested)
+    chart.data.datasets[0].borderColor = FIXED_BORDER_COLOR; 
+    chart.data.datasets[0].pointBorderColor = FIXED_BORDER_COLOR;
+
+    // Set fill to ability color/gradient (as requested)
     chart.data.datasets[0].backgroundColor = backgroundColors;
-    chart.data.datasets[0].pointBorderColor = isMulticolor ? pointBorderColors : chartColor;
+    
     chart.update();
   });
 }
@@ -469,8 +387,6 @@ multiBtn.addEventListener('click', () => {
     axisColorInputs.forEach(input => input.classList.add('hidden'));
   }
   
-  // Ensure colors are synced when switching modes (Requirement: single color button should be the same color as multicolor button)
-  // This logic is mostly handled in updateCharts, but we call it to refresh.
   updateCharts();
 });
 
