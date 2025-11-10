@@ -1,7 +1,7 @@
 /* =======================
    STATE
 ======================= */
-let chartList = []; // store all stacked radar charts
+let chartList = []; // holds all radar charts stacked together
 let radar2, radar2Ready = false;
 let chartColor = '#92dfec';
 let multiColorMode = false;
@@ -32,30 +32,15 @@ function makeConicGradient(chart, axisColors, alpha = 0.65) {
 }
 
 function computeFill(chart, abilityHex, axisPickers) {
-  if (!multiColorMode) return hexToRGBA(abilityHex, 0.65);
+  if (!multiColorMode) return hexToRGBA(abilityHex, 0.45);
   const cols = axisPickers.map(p => p.value || abilityHex);
-  return makeConicGradient(chart, cols, 0.65);
+  return makeConicGradient(chart, cols, 0.45);
 }
-
-/* =======================
-   PLUGINS
-======================= */
-const fixedCenterPlugin = {
-  id: 'fixedCenter',
-  beforeLayout(chart) {
-    const opt = chart.config.options.fixedCenter;
-    if (opt?.enabled) {
-      const r = chart.scales.r;
-      r.xCenter = opt.centerX;
-      r.yCenter = opt.centerY;
-    }
-  }
-};
 
 /* =======================
    CHART CREATOR
 ======================= */
-function makeRadar(ctx, color, data, showPoints = true, zIndex = 0) {
+function makeRadar(ctx, color, data, withBackground = false) {
   return new Chart(ctx, {
     type: 'radar',
     data: {
@@ -67,13 +52,12 @@ function makeRadar(ctx, color, data, showPoints = true, zIndex = 0) {
         borderWidth: 2,
         pointBackgroundColor: '#fff',
         pointBorderColor: color,
-        pointRadius: showPoints ? 5 : 0
+        pointRadius: 4
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: true,
-      elements: { line: { tension: 0 } },
       scales: {
         r: {
           grid: { display: false },
@@ -86,23 +70,21 @@ function makeRadar(ctx, color, data, showPoints = true, zIndex = 0) {
       },
       layout: { padding: { top: 25, bottom: 25, left: 10, right: 10 } },
       plugins: { legend: { display: false } }
-    },
-    plugins: [fixedCenterPlugin]
+    }
   });
 }
 
 /* =======================
-   DOM HOOKS
+   DOM ELEMENTS
 ======================= */
 const addChartBtn = document.getElementById('addChartBtn');
-const viewBtn = document.getElementById('viewBtn');
 const chartArea = document.getElementById('chartArea');
+const colorPicker = document.getElementById('colorPicker');
 const powerInput = document.getElementById('powerInput');
 const speedInput = document.getElementById('speedInput');
 const trickInput = document.getElementById('trickInput');
 const recoveryInput = document.getElementById('recoveryInput');
 const defenseInput = document.getElementById('defenseInput');
-const colorPicker = document.getElementById('colorPicker');
 const axisColorPickers = [
   document.getElementById('powerColor'),
   document.getElementById('speedColor'),
@@ -115,39 +97,39 @@ const axisColorPickers = [
    INIT
 ======================= */
 window.addEventListener('load', () => {
-  const baseCtx = document.getElementById('radarChart1').getContext('2d');
-  const baseChart = makeRadar(baseCtx, chartColor, [0, 0, 0, 0, 0]);
+  const ctx1 = document.getElementById('radarChart1').getContext('2d');
+  const baseChart = makeRadar(ctx1, chartColor, [0, 0, 0, 0, 0]);
   chartList.push(baseChart);
   updateCharts();
 });
 
 /* =======================
-   ADD NEW STACKED CHART
+   STACK NEW CHART
 ======================= */
 addChartBtn.addEventListener('click', () => {
   const newCanvas = document.createElement('canvas');
   newCanvas.classList.add('stacked-chart');
   chartArea.appendChild(newCanvas);
+  const ctx = newCanvas.getContext('2d');
 
-  // Each chart has different color variation
   const randomHue = Math.floor(Math.random() * 360);
   const randomColor = `hsl(${randomHue}, 70%, 55%)`;
 
-  const ctx = newCanvas.getContext('2d');
-  const newChart = makeRadar(ctx, randomColor, [
+  const data = [
     +powerInput.value || 0,
     +speedInput.value || 0,
     +trickInput.value || 0,
     +recoveryInput.value || 0,
     +defenseInput.value || 0
-  ], false);
+  ];
 
+  const newChart = makeRadar(ctx, randomColor, data);
   chartList.push(newChart);
   updateCharts();
 });
 
 /* =======================
-   UPDATE CHARTS
+   UPDATE ALL CHARTS
 ======================= */
 function updateCharts() {
   const vals = [
@@ -158,6 +140,7 @@ function updateCharts() {
     +defenseInput.value || 0
   ];
   chartColor = colorPicker.value;
+
   chartList.forEach(c => {
     const fill = computeFill(c, chartColor, axisColorPickers);
     c.data.datasets[0].data = vals;
@@ -167,22 +150,7 @@ function updateCharts() {
 }
 
 /* =======================
-   WATERMARK (Popup)
-======================= */
-viewBtn.addEventListener('click', () => {
-  document.getElementById('overlay').classList.remove('hidden');
-  const wm = document.getElementById('popupWatermark');
-  wm.style.opacity = '0.05';
-  wm.style.position = 'absolute';
-  wm.style.bottom = '8px';
-  wm.style.left = '10px';
-  wm.style.fontFamily = 'Candara';
-  wm.style.fontSize = '14px';
-  wm.style.fontWeight = 'bold';
-});
-
-/* =======================
-   INPUT HANDLERS
+   INPUT EVENT LISTENERS
 ======================= */
 [powerInput, speedInput, trickInput, recoveryInput, defenseInput, colorPicker].forEach(el => {
   el.addEventListener('input', updateCharts);
