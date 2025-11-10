@@ -46,7 +46,7 @@ function makeRadar(ctx, color, data) {
           ticks: { display: false },
           pointLabels: { color: "transparent" },
           min: 0,
-          max: 10 // base out of 10
+          max: 10 // base scale out of 10
         }
       },
       plugins: { legend: { display: false } }
@@ -99,13 +99,14 @@ function getGlobalMax() {
 
 function updateGlobalScale() {
   const newMax = getGlobalMax();
+  const appliedMax = newMax < 10 ? 10 : newMax;
   charts.forEach(c => {
     c.chart.options.scales.r.min = 0;
-    c.chart.options.scales.r.max = newMax < 10 ? 10 : newMax;
+    c.chart.options.scales.r.max = appliedMax;
     c.chart.update();
   });
   if (radar2Ready && radar2) {
-    radar2.options.scales.r.max = newMax < 10 ? 10 : newMax;
+    radar2.options.scales.r.max = appliedMax;
     radar2.update();
   }
 }
@@ -169,14 +170,16 @@ function addChart() {
 function selectChart(index) {
   activeChart = index;
 
+  // Highlight active button
   chartButtons.querySelectorAll("button").forEach((b, i) => {
     b.style.backgroundColor = i === index ? "#6db5c0" : "#92dfec";
     b.style.color = i === index ? "white" : "black";
   });
 
+  // Keep all charts fully visible
   charts.forEach((c, i) => {
     c.canvas.style.zIndex = i === index ? "2" : "1";
-    c.chart.canvas.style.opacity = i === index ? "1" : "0.35";
+    c.chart.canvas.style.opacity = "1"; // no dimming
   });
 
   updateInputs(index);
