@@ -4,8 +4,8 @@ let chartColor = '#92dfec';
 let multiColorMode = false;
 
 const CHART1_CENTER = { x: 247, y: 250 };
+const CHART_SIZE_MULTIPLIER = 1.0;
 
-// Convert HEX to RGBA
 function hexToRGBA(hex, alpha) {
   if (hex.startsWith('rgb')) return hex.replace(')', `, ${alpha})`).replace('rgb', 'rgba');
   const r = parseInt(hex.slice(1, 3), 16);
@@ -21,22 +21,113 @@ const fixedCenterPlugin = {
     const opt = chart.config.options.fixedCenter;
     if (!opt?.enabled) return;
     const r = chart.scales.r;
-    if (opt.centerX && opt.centerY) {
-      r.xCenter = opt.centerX;
-      r.yCenter = opt.centerY;
-    }
+    r.xCenter = opt.centerX;
+    r.yCenter = opt.centerY;
   }
 };
 
-/* === GRADIENT BACKGROUND FOR MULTICOLOR === */
-function createGradient(ctx, cx, cy, radius, colors) {
-  const grad = ctx.createLinearGradient(cx - radius, cy - radius, cx + radius, cy + radius);
-  const stops = colors.length;
-  colors.forEach((c, i) => grad.addColorStop(i / (stops - 1), c));
-  return grad;
+/* === BACKGROUND PENTAGON RESTORED === */
+const radarBackgroundPlugin = {
+  id: 'customPentagonBackground',
+  beforeDatasetsDraw(chart) {
+    if (!chart.config.options.customBackground?.enabled) return;
+    const ctx = chart.ctx;
+    const r = chart.scales.r;
+    const cx = r.xCenter, cy = r.yCenter, radius = r.drawingArea;
+    const N = chart.data.labels.length;
+    const start = -Math.PI / 2;
+
+    const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+    gradient.addColorStop(0, '#f8fcff');
+    gradient.addColorStop(0.33, '#92dfec');
+    gradient.addColorStop(1, '#92dfec');
+
+    ctx.save();
+    ctx.beginPath();
+    for (let i = 0; i < N; i++) {
+      const angle = start + (i * 2 * Math.PI / N);
+      const x = cx + radius * Math.cos(angle);
+      const y = cy + radius * Math.sin(angle);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    ctx.restore();
+  },
+  afterDatasetsDraw(chart) {
+    const ctx = chart.ctx;
+    const r = chart.scales.r;
+    const cx = r.xCenter, cy = r.yCenter, radius = r.drawingArea;
+    const N = chart.data.labels.length;
+    const start = -Math.PI / 2;
+
+    ctx.save();
+    ctx.beginPath();
+    for (let i = 0; i < N; i++) {
+      const a = start + (i * 2 * Math.PI / N);
+      const x = cx + radius * Math.cos(a);
+      const y = cy + radius * Math.sin(a);
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = '#35727d';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+  }
+};
+
+/* === OUTLINED LABELS RESTORED === */
+const outlinedLabelsPlugin = {
+  id: 'outlinedLabels',
+  afterDraw(chart) {
+    const ctx = chart.ctx;
+    const r = chart.scales.r;
+    const labels = chart.data.labels;
+    const cx = r.xCenter, cy = r.yCenter;
+    const radius = r.drawingArea * 1.15;
+    const base = -Math.PI / 2;
+
+    ctx.save();
+    ctx.font = 'italic 18px Candara';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = chartColor;
+    ctx.fillStyle = 'white';
+
+    labels.forEach((label, i) => {
+      const a = base + (i * 2 * Math.PI / labels.length);
+      const x = cx + radius * Math.cos(a);
+      const y = cy + radius * Math.sin(a);
+      ctx.strokeText(label, x, y);
+      ctx.fillText(label, x, y);
+    });
+    ctx.restore();
+  }
+};
+
+/* === MULTICOLOR GRADIENT FILL === */
+function makeGradientPolygon(ctx, cx, cy, radius, colors) {
+  const N = colors.length;
+  const gradientCanvas = document.createElement('canvas');
+  gradientCanvas.width = 512;
+  gradientCanvas.height = 512;
+  const gctx = gradientCanvas.getContext('2d');
+
+  const radial = gctx.createRadialGradient(256, 256, 0, 256, 256, 256);
+  for (let i = 0; i < N; i++) {
+    const stop = i / (N - 1);
+    radial.addColorStop(stop, colors[i]);
+  }
+  gctx.fillStyle = radial;
+  gctx.fillRect(0, 0, 512, 512);
+  return ctx.createPattern(gradientCanvas, 'no-repeat');
 }
 
-/* === RADAR CREATOR === */
+/* === CHART CREATOR === */
 function makeRadar(ctx, showPoints = true, withBackground = false, fixedCenter = null) {
   return new Chart(ctx, {
     type: 'radar',
@@ -65,45 +156,46 @@ function makeRadar(ctx, showPoints = true, withBackground = false, fixedCenter =
           pointLabels: { color: 'transparent' }
         }
       },
+      customBackground: { enabled: withBackground },
       fixedCenter: { enabled: !!fixedCenter, centerX: fixedCenter?.x, centerY: fixedCenter?.y },
       plugins: { legend: { display: false } }
     },
-    plugins: [fixedCenterPlugin]
+    plugins: [fixedCenterPlugin, radarBackgroundPlugin, outlinedLabelsPlugin]
   });
 }
 
-/* === DOM ELEMENTS === */
-const viewBtn = document.getElementById('viewBtn');
-const multiColorBtn = document.getElementById('multiColorBtn');
-const axisColorPickers = document.getElementById('axisColorPickers');
+/* === ELEMENTS === */
 const colorPicker = document.getElementById('colorPicker');
 const powerInput = document.getElementById('powerInput');
 const speedInput = document.getElementById('speedInput');
 const trickInput = document.getElementById('trickInput');
 const recoveryInput = document.getElementById('recoveryInput');
 const defenseInput = document.getElementById('defenseInput');
+const multiColorBtn = document.getElementById('multiColorBtn');
 const powerColor = document.getElementById('powerColor');
 const speedColor = document.getElementById('speedColor');
 const trickColor = document.getElementById('trickColor');
 const recoveryColor = document.getElementById('recoveryColor');
 const defenseColor = document.getElementById('defenseColor');
+const viewBtn = document.getElementById('viewBtn');
 
-/* === INIT === */
+/* === INIT MAIN CHART === */
 window.addEventListener('load', () => {
   const ctx1 = document.getElementById('radarChart1').getContext('2d');
   radar1 = makeRadar(ctx1, true, false, CHART1_CENTER);
   updateCharts();
 });
 
-/* === UPDATE CHART COLORS === */
+/* === UPDATE CHART === */
 function getWedgeColors() {
-  if (!multiColorMode) return Array(5).fill(hexToRGBA(chartColor, 0.65));
+  const base = hexToRGBA(colorPicker.value, 0.65);
+  if (!multiColorMode) return Array(5).fill(base);
   return [
-    hexToRGBA(powerColor.value, 0.65),
-    hexToRGBA(speedColor.value, 0.65),
-    hexToRGBA(trickColor.value, 0.65),
-    hexToRGBA(recoveryColor.value, 0.65),
-    hexToRGBA(defenseColor.value, 0.65)
+    hexToRGBA(powerColor.value || colorPicker.value, 0.65),
+    hexToRGBA(speedColor.value || colorPicker.value, 0.65),
+    hexToRGBA(trickColor.value || colorPicker.value, 0.65),
+    hexToRGBA(recoveryColor.value || colorPicker.value, 0.65),
+    hexToRGBA(defenseColor.value || colorPicker.value, 0.65)
   ];
 }
 
@@ -115,41 +207,85 @@ function updateCharts() {
     +recoveryInput.value || 0,
     +defenseInput.value || 0
   ];
-  const maxVal = Math.max(...vals, 10);
-  radar1.options.scales.r.suggestedMax = maxVal;
+  radar1.data.datasets[0].data = vals;
 
   const colors = getWedgeColors();
   const ctx = radar1.ctx;
   const r = radar1.scales.r;
-  const grad = createGradient(ctx, r.xCenter, r.yCenter, r.drawingArea, colors);
-
-  radar1.data.datasets[0].data = vals;
-  radar1.data.datasets[0].backgroundColor = grad;
-  radar1.data.datasets[0].borderColor = multiColorMode ? '#00000080' : chartColor;
+  radar1.data.datasets[0].backgroundColor = makeGradientPolygon(ctx, r.xCenter, r.yCenter, r.drawingArea, colors);
   radar1.update();
+
+  if (radar2Ready) {
+    radar2.data.datasets[0].data = vals;
+    radar2.data.datasets[0].backgroundColor = makeGradientPolygon(
+      radar2.ctx,
+      radar2.scales.r.xCenter,
+      radar2.scales.r.yCenter,
+      radar2.scales.r.drawingArea,
+      colors
+    );
+    radar2.update();
+  }
 }
 
-/* === LISTENERS === */
-[colorPicker, powerInput, speedInput, trickInput, recoveryInput, defenseInput,
-  powerColor, speedColor, trickColor, recoveryColor, defenseColor]
-  .forEach(el => el.addEventListener('input', updateCharts));
+/* === EVENT LISTENERS === */
+[
+  powerInput, speedInput, trickInput, recoveryInput, defenseInput,
+  colorPicker, powerColor, speedColor, trickColor, recoveryColor, defenseColor
+].forEach(el => el.addEventListener('input', updateCharts));
 
 multiColorBtn.addEventListener('click', () => {
   multiColorMode = !multiColorMode;
   multiColorBtn.textContent = multiColorMode ? 'Single-color' : 'Multi-color';
-  axisColorPickers.classList.toggle('hidden', !multiColorMode);
-
-  if (multiColorMode) {
-    // sync all pickers to current ability color
-    [powerColor, speedColor, trickColor, recoveryColor, defenseColor].forEach(p => p.value = colorPicker.value);
-  }
+  document.querySelectorAll('.axis-color').forEach(c => c.classList.toggle('hidden', !multiColorMode));
   updateCharts();
 });
 
-/* === AUTO SYNC ABILITY COLOR === */
-colorPicker.addEventListener('change', () => {
-  if (multiColorMode) {
-    [powerColor, speedColor, trickColor, recoveryColor, defenseColor].forEach(p => p.value = colorPicker.value);
-  }
-  updateCharts();
+/* === OVERLAY & WATERMARK RESTORED === */
+viewBtn.addEventListener('click', () => {
+  const overlay = document.getElementById('overlay');
+  overlay.classList.remove('hidden');
+
+  document.getElementById('overlayImg').src = document.getElementById('uploadedImg').src;
+  document.getElementById('overlayName').textContent = document.getElementById('nameInput').value || '-';
+  document.getElementById('overlayAbility').textContent = document.getElementById('abilityInput').value || '-';
+  document.getElementById('overlayLevel').textContent = document.getElementById('levelInput').value || '-';
+
+  setTimeout(() => {
+    const img = document.getElementById('overlayImg');
+    const textBox = document.querySelector('.text-box');
+    const overlayChart = document.querySelector('.overlay-chart');
+    const targetSize = (img.offsetHeight + textBox.offsetHeight) * CHART_SIZE_MULTIPLIER;
+    overlayChart.style.width = `${targetSize}px`;
+    overlayChart.style.height = `${targetSize}px`;
+
+    const ctx2 = document.getElementById('radarChart2').getContext('2d');
+    if (!radar2Ready) {
+      radar2 = makeRadar(ctx2, false, true, { x: targetSize / 2, y: targetSize / 2 });
+      radar2Ready = true;
+    }
+    updateCharts();
+
+    if (!document.querySelector('.watermark-image')) {
+      const wm = document.createElement('div');
+      wm.textContent = 'AS';
+      wm.className = 'watermark-image';
+      Object.assign(wm.style, {
+        position: 'absolute',
+        bottom: '8px',
+        left: '10px',
+        fontFamily: 'Candara',
+        fontWeight: 'bold',
+        fontSize: '12px',
+        color: 'rgba(0,0,0,0.05)',
+        pointerEvents: 'none',
+        zIndex: '2'
+      });
+      document.querySelector('.image-section').appendChild(wm);
+    }
+  }, 200);
+});
+
+document.getElementById('closeBtn').addEventListener('click', () => {
+  document.getElementById('overlay').classList.add('hidden');
 });
