@@ -2,6 +2,10 @@ let radar1, radar2;
 let radar2Ready = false;
 let chartColor = 'rgb(135, 71, 230)';
 
+// ✅ Multicolor mode setup
+let isMulticolor = false;
+const multiColors = ['#ff6b6b', '#feca57', '#48dbfb', '#1dd1a1', '#5f27cd']; // Power, Speed, Trick, Recovery, Defense
+
 const CHART1_CENTER = { x: 247, y: 250 };
 const CHART_SCALE_FACTOR = 1.0;
 const CHART_SIZE_MULTIPLIER = 1.0;
@@ -12,6 +16,17 @@ function hexToRGBA(hex, alpha) {
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
   return `rgba(${r},${g},${b},${alpha})`;
+}
+
+/* === Gradient generator for multicolor mode === */
+function createAxisGradient(ctx, cx, cy, radius, colors) {
+  const gradient = ctx.createConicGradient(-Math.PI / 2, cx, cy);
+  const n = colors.length;
+  colors.forEach((c, i) => {
+    gradient.addColorStop(i / n, c);
+    gradient.addColorStop((i + 1) / n, colors[i % n]);
+  });
+  return gradient;
 }
 
 /* === FIXED CENTER === */
@@ -91,7 +106,7 @@ const radarBackgroundPlugin = {
   }
 };
 
-/* === OUTLINED LABELS (Speed & Defense slightly lowered) === */
+/* === OUTLINED LABELS === */
 const outlinedLabelsPlugin = {
   id: 'outlinedLabels',
   afterDraw(chart) {
@@ -120,7 +135,7 @@ const outlinedLabelsPlugin = {
       let y = cy + radiusToUse * Math.sin(angle);
 
       if (i === 0) y -= 5;
-      if (isOverlayChart && (i === 1 || i === 4)) y -= 42; // lowered slightly from -48 → -42
+      if (isOverlayChart && (i === 1 || i === 4)) y -= 42;
 
       ctx.strokeText(label, x, y);
       ctx.fillText(label, x, y);
@@ -129,7 +144,7 @@ const outlinedLabelsPlugin = {
   }
 };
 
-/* === NUMERIC LABELS (Speed & Defense slightly lowered) === */
+/* === NUMERIC LABELS === */
 const inputValuePlugin = {
   id: 'inputValuePlugin',
   afterDraw(chart) {
@@ -154,10 +169,9 @@ const inputValuePlugin = {
       if (chart.canvas.id === 'radarChart2' && (i === 1 || i === 4)) radiusToUse = r.drawingArea * 1.15;
       const x = cx + (radiusToUse + offset) * Math.cos(angle);
       let y = cy + (radiusToUse + offset) * Math.sin(angle);
-
       if (i === 0) y -= 20;
       if (chart.canvas.id === 'radarChart2') {
-        if (i === 1 || i === 4) y -= 22; // lowered slightly from -28 → -22
+        if (i === 1 || i === 4) y -= 22;
       } else {
         if (i === 1) y += 20;
         if (i === 4) y += 20;
@@ -176,7 +190,15 @@ function makeRadar(ctx, showPoints = true, withBackground = false, fixedCenter =
       labels: ['Power', 'Speed', 'Trick', 'Recovery', 'Defense'],
       datasets: [{
         data: [0, 0, 0, 0, 0],
-        backgroundColor: hexToRGBA(chartColor, 0.65),
+        // ✅ gradient or solid fill
+        backgroundColor: context => {
+          if (!isMulticolor) return hexToRGBA(chartColor, 0.65);
+          const { ctx: chartCtx, chartArea } = context.chart;
+          const cx = (chartArea.left + chartArea.right) / 2;
+          const cy = (chartArea.top + chartArea.bottom) / 2;
+          const radius = (chartArea.right - chartArea.left) / 2;
+          return createAxisGradient(chartCtx, cx, cy, radius, multiColors);
+        },
         borderColor: chartColor,
         borderWidth: 2,
         pointBackgroundColor: '#fff',
@@ -208,6 +230,7 @@ function makeRadar(ctx, showPoints = true, withBackground = false, fixedCenter =
 
 /* === DOM ELEMENTS === */
 const viewBtn = document.getElementById('viewBtn');
+const multiBtn = document.getElementById('multiBtn');
 const imgInput = document.getElementById('imgInput');
 const uploadedImg = document.getElementById('uploadedImg');
 const overlay = document.getElementById('overlay');
@@ -254,17 +277,22 @@ function updateCharts() {
   if (radar1) {
     radar1.data.datasets[0].data = vals;
     radar1.data.datasets[0].borderColor = chartColor;
-    radar1.data.datasets[0].backgroundColor = fill;
     radar1.update();
   }
 
   if (radar2Ready && radar2) {
     radar2.data.datasets[0].data = capped;
     radar2.data.datasets[0].borderColor = chartColor;
-    radar2.data.datasets[0].backgroundColor = fill;
     radar2.update();
   }
 }
+
+/* === MULTICOLOR TOGGLE === */
+multiBtn.addEventListener('click', () => {
+  isMulticolor = !isMulticolor;
+  multiBtn.textContent = isMulticolor ? 'Single Color' : 'Multicolor';
+  updateCharts();
+});
 
 /* === INPUT LISTENERS === */
 [powerInput, speedInput, trickInput, recoveryInput, defenseInput, colorPicker]
@@ -311,56 +339,4 @@ viewBtn.addEventListener('click', () => {
         left: '10px',
         fontFamily: 'Candara',
         fontWeight: 'bold',
-        fontSize: '12px',
-        color: 'rgba(0,0,0,0.15)',
-        pointerEvents: 'none',
-        zIndex: '2'
-      });
-      document.querySelector('.image-section').appendChild(wm);
-    }
-
-    const ctx2 = document.getElementById('radarChart2').getContext('2d');
-    if (!radar2Ready) {
-      radar2 = makeRadar(ctx2, false, true, { x: targetSize / 2, y: targetSize / 2 });
-      radar2.options.scales.r.suggestedMax = 10;
-      radar2Ready = true;
-    } else {
-      radar2.resize();
-    }
-    updateCharts();
-  }, 200);
-});
-
-closeBtn.addEventListener('click', () => overlay.classList.add('hidden'));
-
-/* === ALWAYS DOWNLOAD HORIZONTAL LAYOUT === */
-downloadBtn.addEventListener('click', () => {
-  downloadBtn.style.visibility = 'hidden';
-  closeBtn.style.visibility = 'hidden';
-
-  const box = document.getElementById('characterBox');
-  const originalFlex = box.style.flexDirection;
-  const originalWidth = box.style.width;
-  const originalHeight = box.style.height;
-
-  box.style.flexDirection = 'row';
-  box.style.width = '52vw';
-  box.style.height = '64vh';
-  box.style.maxHeight = 'none';
-  box.style.overflow = 'visible';
-
-  html2canvas(box, { scale: 2 }).then(canvas => {
-    const link = document.createElement('a');
-    const cleanName = (nameInput.value || 'Unnamed').replace(/\s+/g, '_');
-    link.download = `${cleanName}_CharacterChart.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-
-    box.style.flexDirection = originalFlex;
-    box.style.width = originalWidth;
-    box.style.height = originalHeight;
-
-    downloadBtn.style.visibility = 'visible';
-    closeBtn.style.visibility = 'visible';
-  });
-});
+        fontSize: '12px
