@@ -30,21 +30,24 @@ function getAxisColors() {
 function createAxisGradient(ctx, chartArea, colors) {
     const cx = (chartArea.left + chartArea.right) / 2;
     const cy = (chartArea.top + chartArea.bottom) / 2;
+    // Get current alpha value for transparency
+    const alpha = parseFloat(alphaInput.value); 
 
     const grad = ctx.createConicGradient(-Math.PI / 2, cx, cy);
     const n = colors.length;
     
-    // Add colors to the conic gradient with slight overlap to ensure solid segments
+    // Add colors to the conic gradient with alpha applied
     colors.forEach((c, i) => {
-        grad.addColorStop(i / n, c);
-        grad.addColorStop((i + 1) / n - 0.0001, c);
+        const rgba = hexToRGBA(c, alpha);
+        grad.addColorStop(i / n, rgba);
+        grad.addColorStop((i + 1) / n - 0.0001, rgba);
     });
     return grad;
 }
 
 
 /* === Chart.js Plugins (Copied from your working code) === */
-const fixedCenterPlugin = { /* ... your fixedCenterPlugin implementation ... */ 
+const fixedCenterPlugin = { /* ... fixedCenterPlugin ... */ 
     id: 'fixedCenter',
     beforeLayout(chart) {
         const opt = chart.config.options.fixedCenter;
@@ -57,7 +60,7 @@ const fixedCenterPlugin = { /* ... your fixedCenterPlugin implementation ... */
     }
 };
 
-const radarBackgroundPlugin = { /* ... your radarBackgroundPlugin implementation ... */
+const radarBackgroundPlugin = { /* ... radarBackgroundPlugin ... */
     id: 'customPentagonBackground',
     beforeDatasetsDraw(chart) {
         const opts = chart.config.options.customBackground;
@@ -65,10 +68,11 @@ const radarBackgroundPlugin = { /* ... your radarBackgroundPlugin implementation
         const r = chart.scales.r, ctx = chart.ctx;
         const cx = r.xCenter, cy = r.yCenter, radius = r.drawingArea;
         const N = chart.data.labels.length, start = -Math.PI / 2;
-
+        
+        // Use the current chartColor for the background gradient
         const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
         gradient.addColorStop(0, '#f8fcff');
-        gradient.addColorStop(0.33, chartColor); // Use the ability color here
+        gradient.addColorStop(0.33, chartColor); 
         gradient.addColorStop(1, chartColor);
 
         ctx.save();
@@ -119,7 +123,7 @@ const radarBackgroundPlugin = { /* ... your radarBackgroundPlugin implementation
     }
 };
 
-const outlinedLabelsPlugin = { /* ... your outlinedLabelsPlugin implementation ... */
+const outlinedLabelsPlugin = { /* ... outlinedLabelsPlugin ... */
     id: 'outlinedLabels',
     afterDraw(chart) {
         const ctx = chart.ctx;
@@ -135,7 +139,6 @@ const outlinedLabelsPlugin = { /* ... your outlinedLabelsPlugin implementation .
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.font = 'italic 18px Candara';
-        // Use the current chartColor for the outline
         ctx.strokeStyle = chartColor; 
         ctx.fillStyle = 'white';
         ctx.lineWidth = 4;
@@ -157,10 +160,9 @@ const outlinedLabelsPlugin = { /* ... your outlinedLabelsPlugin implementation .
     }
 };
 
-const inputValuePlugin = { /* ... your inputValuePlugin implementation ... */
+const inputValuePlugin = { /* ... inputValuePlugin ... */
     id: 'inputValuePlugin',
     afterDraw(chart) {
-        // Only draw this plugin if customBackground is DISABLED (i.e., on radarChart1)
         if (chart.config.options.customBackground.enabled) return; 
         
         const ctx = chart.ctx;
@@ -182,13 +184,10 @@ const inputValuePlugin = { /* ... your inputValuePlugin implementation ... */
             const angle = base + (i * 2 * Math.PI / labels.length);
             let radiusToUse = baseRadius;
             
-            // Adjustments for the overlay chart labels are not needed here since this only runs on radarChart1
-            
             const x = cx + (radiusToUse + offset) * Math.cos(angle);
             let y = cy + (radiusToUse + offset) * Math.sin(angle);
 
             if (i === 0) y -= 20;
-            // Adjust position for bottom labels on the main chart (radarChart1)
             if (i === 1) y += 20; 
             if (i === 4) y += 20;
 
@@ -215,13 +214,15 @@ function makeRadar(ctx, showPoints = true, withBackground = false, fixedCenter =
                     if (!chartArea) return null;
 
                     if (isMulticolor) {
+                        // Background is handled by gradient function, which now uses alphaInput
                         const axisColors = getAxisColors();
                         return createAxisGradient(ctx, chartArea, axisColors);
                     } else {
-                        return hexToRGBA(chartColor, 0.65);
+                        // Background is handled by single color, using alphaInput
+                        const alpha = parseFloat(alphaInput.value);
+                        return hexToRGBA(chartColor, alpha);
                     }
                 },
-                // Border and Point colors are set in updateCharts()
                 borderColor: chartColor,
                 pointBorderColor: chartColor, 
                 pointRadius: showPoints ? 5 : 0
@@ -233,12 +234,12 @@ function makeRadar(ctx, showPoints = true, withBackground = false, fixedCenter =
             layout: { padding: { top: 25, bottom: 25, left: 10, right: 10 } },
             scales: {
                 r: {
-                    grid: { display: withBackground ? false : '#ddd' }, // Show grid on main chart, hide on overlay
+                    grid: { display: withBackground ? false : '#ddd' }, 
                     angleLines: { color: withBackground ? '#6db5c0' : '#ccc', lineWidth: 1 },
                     suggestedMin: 0,
                     suggestedMax: 10,
                     ticks: { display: false },
-                    pointLabels: { color: 'transparent' } // Labels handled by plugin
+                    pointLabels: { color: 'transparent' }
                 }
             },
             customBackground: { enabled: withBackground },
@@ -267,6 +268,7 @@ const trickInput = document.getElementById('trickInput');
 const recoveryInput = document.getElementById('recoveryInput');
 const defenseInput = document.getElementById('defenseInput');
 const colorPicker = document.getElementById('colorPicker');
+const alphaInput = document.getElementById('alphaInput'); // NEW: Alpha Input
 const nameInput = document.getElementById('nameInput');
 const abilityInput = document.getElementById('abilityInput');
 const levelInput = document.getElementById('levelInput');
@@ -283,7 +285,6 @@ const axisColors = {
 
 /* === MAIN CHART INIT === */
 window.addEventListener('load', () => {
-    // Set initial chart color from HTML value
     chartColor = colorPicker.value || chartColor; 
     
     const ctx1 = document.getElementById('radarChart1').getContext('2d');
@@ -304,26 +305,33 @@ function updateCharts() {
     // Update main color
     chartColor = colorPicker.value || chartColor; 
 
-    // Update Max scale for radar1 based on inputs, but keep radar2 max at 10
+    // Get current alpha for transparency
+    const alpha = parseFloat(alphaInput.value);
+
+    // Update Max scale for radar1 
     const maxVal = Math.max(...vals, 10); 
     
     // For the overlay chart (radar2), values are capped at 10
     const cappedVals = vals.map(v => Math.min(v, 10)); 
+    
+    // Fallback single color fill using new alpha
+    const singleColorFill = hexToRGBA(chartColor, alpha);
 
     if (radar1) {
         radar1.options.scales.r.suggestedMax = maxVal;
         radar1.data.datasets[0].data = vals;
         radar1.data.datasets[0].borderColor = chartColor;
         radar1.data.datasets[0].pointBorderColor = chartColor;
-        // The background color is a function, which re-evaluates on update()
-        radar1.update();
+        // The background color is a function in makeRadar, which now reads 'alphaInput'
+        radar1.update(); 
     }
 
     if (radar2Ready && radar2) {
         radar2.data.datasets[0].data = cappedVals;
         radar2.data.datasets[0].borderColor = chartColor;
         radar2.data.datasets[0].pointBorderColor = chartColor;
-        // The background color is a function, which re-evaluates on update()
+        // For radar2, the background plugin radial gradient needs chartColor
+        // The main dataset background is handled by the function in makeRadar
         radar2.update();
     }
 }
@@ -336,17 +344,23 @@ multiBtn.addEventListener('click', () => {
 
     // Toggle visibility of axis color pickers
     Object.values(axisColors).forEach(el => {
+        // Toggle the 'hidden' class based on the new isMulticolor state
         el.classList.toggle('hidden', !isMulticolor); 
     });
+    
+    // Toggle visibility of the main color picker and alpha input when in multicolor mode
+    colorPicker.classList.toggle('hidden', isMulticolor);
+    alphaInput.parentElement.classList.toggle('hidden', isMulticolor);
+
 
     updateCharts(); // Force redraw to apply the new gradient/color
 });
 
 
 /* === EVENT LISTENERS === */
-// Inputs for stats, main color, and axis colors
+// Inputs for stats, main color, alpha, and axis colors
 const allInputs = [
-    powerInput, speedInput, trickInput, recoveryInput, defenseInput, colorPicker, 
+    powerInput, speedInput, trickInput, recoveryInput, defenseInput, colorPicker, alphaInput,
     ...Object.values(axisColors) 
 ];
 
@@ -377,7 +391,6 @@ viewBtn.addEventListener('click', () => {
         const textBox = document.querySelector('.text-box');
         const overlayChart = document.querySelector('.overlay-chart');
         
-        // Calculate dynamic chart size (logic carried over from working code)
         const imgHeight = img.offsetHeight;
         const textHeight = textBox.offsetHeight;
         const targetSize = (imgHeight + textHeight) * CHART_SIZE_MULTIPLIER;
@@ -385,7 +398,6 @@ viewBtn.addEventListener('click', () => {
         overlayChart.style.height = `${targetSize}px`;
         overlayChart.style.width = `${targetSize}px`;
 
-        // Watermark logic (carried over from working code)
         const existingWatermark = document.querySelector('.image-section .watermark-image');
         if (!existingWatermark) {
             const wm = document.createElement('div');
@@ -401,9 +413,8 @@ viewBtn.addEventListener('click', () => {
 
         const ctx2 = document.getElementById('radarChart2').getContext('2d');
         if (!radar2Ready) {
-            // Create radar2 chart with background and no points
             radar2 = makeRadar(ctx2, false, true, { x: targetSize / 2, y: targetSize / 2 });
-            radar2.options.scales.r.suggestedMax = 10; // Max is always 10 for the overlay chart
+            radar2.options.scales.r.suggestedMax = 10; 
             radar2Ready = true;
         } else {
             radar2.resize();
@@ -420,12 +431,10 @@ downloadBtn.addEventListener('click', () => {
     closeBtn.style.visibility = 'hidden';
 
     const box = document.getElementById('characterBox');
-    // Save original styles for restoration
     const originalFlex = box.style.flexDirection;
     const originalWidth = box.style.width;
     const originalHeight = box.style.height;
 
-    // Apply horizontal layout for consistent download image
     box.style.flexDirection = 'row';
     box.style.width = 'fit-content'; 
     box.style.height = 'fit-content';
@@ -439,7 +448,6 @@ downloadBtn.addEventListener('click', () => {
         link.href = canvas.toDataURL('image/png');
         link.click();
 
-        // Restore original styles for modal display
         box.style.flexDirection = originalFlex;
         box.style.width = originalWidth;
         box.style.height = originalHeight;
