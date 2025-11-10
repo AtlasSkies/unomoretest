@@ -6,7 +6,7 @@ let isMulticolor = false;
 const CHART1_CENTER = { x: 247, y: 250 };
 const CHART_SIZE_MULTIPLIER = 1.0;
 
-/* === UTILS === */
+/* === UTILITIES === */
 function hexToRGBA(hex, alpha) {
   if (hex.startsWith('rgb')) return hex.replace(')', `, ${alpha})`).replace('rgb', 'rgba');
   const r = parseInt(hex.slice(1, 3), 16);
@@ -16,7 +16,11 @@ function hexToRGBA(hex, alpha) {
 }
 
 function mixColors(c1, c2, weight = 0.5) {
-  const toRGB = hex => [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+  const toRGB = hex => [
+    parseInt(hex.slice(1, 3), 16),
+    parseInt(hex.slice(3, 5), 16),
+    parseInt(hex.slice(5, 7), 16)
+  ];
   const [r1, g1, b1] = toRGB(c1);
   const [r2, g2, b2] = toRGB(c2);
   const r = Math.round(r1 * (1 - weight) + r2 * weight);
@@ -65,7 +69,7 @@ const fixedCenterPlugin = {
   }
 };
 
-/* === BACKGROUND (from your example) === */
+/* === BACKGROUND PENTAGON AND SPOKES === */
 const radarBackgroundPlugin = {
   id: 'customPentagonBackground',
   beforeDatasetsDraw(chart) {
@@ -128,7 +132,7 @@ const radarBackgroundPlugin = {
   }
 };
 
-/* === LABEL OUTLINES === */
+/* === OUTLINED LABELS === */
 const outlinedLabelsPlugin = {
   id: 'outlinedLabels',
   afterDraw(chart) {
@@ -158,7 +162,7 @@ const outlinedLabelsPlugin = {
   }
 };
 
-/* === BUILD RADAR === */
+/* === CHART CREATION === */
 function makeRadar(ctx, showPoints = true, withBackground = false, fixedCenter = null) {
   return new Chart(ctx, {
     type: 'radar',
@@ -206,7 +210,7 @@ function makeRadar(ctx, showPoints = true, withBackground = false, fixedCenter =
   });
 }
 
-/* === DOM === */
+/* === DOM ELEMENTS === */
 const viewBtn = document.getElementById('viewBtn');
 const imgInput = document.getElementById('imgInput');
 const uploadedImg = document.getElementById('uploadedImg');
@@ -244,7 +248,7 @@ window.addEventListener('load', () => {
   updateCharts();
 });
 
-/* === UPDATE === */
+/* === UPDATE CHARTS === */
 function updateCharts() {
   const vals = [
     +powerInput.value || 0,
@@ -290,7 +294,7 @@ multiBtn.addEventListener('click', () => {
   el.addEventListener('change', updateCharts);
 });
 
-/* === IMAGE === */
+/* === IMAGE UPLOAD === */
 imgInput.addEventListener('change', e => {
   const file = e.target.files[0];
   if (!file) return;
@@ -299,7 +303,7 @@ imgInput.addEventListener('change', e => {
   reader.readAsDataURL(file);
 });
 
-/* === VIEW === */
+/* === OVERLAY === */
 viewBtn.addEventListener('click', () => {
   overlay.classList.remove('hidden');
   overlayImg.src = uploadedImg.src;
@@ -316,6 +320,25 @@ viewBtn.addEventListener('click', () => {
     const targetSize = (imgHeight + textHeight) * CHART_SIZE_MULTIPLIER;
     overlayChart.style.height = `${targetSize}px`;
     overlayChart.style.width = `${targetSize}px`;
+
+    const existingWatermark = document.querySelector('.image-section .watermark-image');
+    if (!existingWatermark) {
+      const wm = document.createElement('div');
+      wm.textContent = 'AS';
+      wm.className = 'watermark-image';
+      Object.assign(wm.style, {
+        position: 'absolute',
+        bottom: '8px',
+        left: '10px',
+        fontFamily: 'Candara',
+        fontWeight: 'bold',
+        fontSize: '9px', // ⬅️ increased 50%
+        color: 'rgba(0,0,0,0.15)',
+        pointerEvents: 'none',
+        zIndex: '2'
+      });
+      document.querySelector('.image-section').appendChild(wm);
+    }
 
     const ctx2 = document.getElementById('radarChart2').getContext('2d');
     if (!radar2Ready) {
