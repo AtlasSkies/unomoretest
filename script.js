@@ -6,13 +6,7 @@ let isMulticolor = false;
 // Fixed colors for the spokes and polygon border
 const FIXED_BORDER_COLOR = '#493e3b';
 const FIXED_SPOKE_COLOR = '#6db5c0';
-// Adjusted opacity for single-color mode/background to match the request for transparency in multicolor
 const DEFAULT_FILL_OPACITY = 0.65;
-const WEDGE_FILL_OPACITY = 0.9; // Opacity for the wedges themselves
-
-// Fixed, pale colors for the View Character Chart background
-const FIXED_BACKGROUND_INNER_COLOR = '#d9f3fa';
-const FIXED_BACKGROUND_OUTER_COLOR = '#92dfec';
 
 /* === UTILITIES === */
 function hexToRGBA(hex, alpha) {
@@ -34,15 +28,25 @@ function getAxisColors() {
     ];
 }
 
+/* New function to create a gradient for a segment */
+function createSegmentGradient(ctx, cx, cy, p1, p2, color1, color2) {
+    // Determine the gradient line (e.g., from the center out along the bisector, or across the base)
+    // For a smooth transition between wedges, we'll create a simple linear gradient
+    // from the starting point (p1) to the ending point (p2) of the arc.
+    const gradient = ctx.createLinearGradient(p1.x, p1.y, p2.x, p2.y);
+    gradient.addColorStop(0, hexToRGBA(color1, 0.85)); // Start color (with opacity)
+    gradient.addColorStop(1, hexToRGBA(color2, 0.85)); // End color (with opacity)
+    return gradient;
+}
+
 /* === PLUGINS === */
 
-// ✅ Smooth gradient wedges between adjacent axes (Multicolor mode)
+// Plugin to draw colored wedges (for multicolor mode) - MODIFIED
 const segmentedFillPlugin = {
     id: 'segmentedFill',
     beforeDatasetsDraw(chart, args, options) {
-        // Only run if in multicolor mode AND it's for the radar that displays the data polygon
         if (!options.enabled || chart.data.datasets.length === 0) return;
-        
+
         const ctx = chart.ctx;
         const r = chart.scales.r;
         const meta = chart.getDatasetMeta(0);
@@ -50,37 +54,21 @@ const segmentedFillPlugin = {
         const N = chart.data.labels.length;
         const cx = r.xCenter, cy = r.yCenter;
         const colors = getAxisColors();
-        const dataset = chart.data.datasets[0];
 
         ctx.save();
         
         for (let i = 0; i < N; i++) {
             const pt1 = dataPoints[i];
-            const pt2 = dataPoints[(i + 1) % N];
+            // The next point is the wrap-around point for the last wedge
+            const pt2 = dataPoints[(i + 1) % N]; 
             
-            // Get the current colors for the two points
-            const c1_hex = colors[i];
-            const c2_hex = colors[(i + 1) % N];
+            // Current wedge color (start color of the gradient)
+            const color1 = colors[i];
+            // Next wedge color (end color of the gradient)
+            const color2 = colors[(i + 1) % N]; 
 
-            // Radial Gradient for smooth transition from center (transparent) to edge (opaque)
-            const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r.drawingArea);
-            
-            // Stop 1: Center is fully transparent
-            grad.addColorStop(0, hexToRGBA(c1_hex, 0.0)); 
-            
-            // Stop 2: Transition point (e.g., halfway) to match the two colors
-            const midRadius = 0.5; // You can adjust this for gradient length
-            const midColor = hexToRGBA(c1_hex, WEDGE_FILL_OPACITY);
-            grad.addColorStop(midRadius, midColor);
-
-            // Stop 3: Edge of the point's data value (fully opaque with set opacity)
-            // Use a linear gradient along the segment to blend c1 and c2 at the edge
-            const linearGrad = ctx.createLinearGradient(pt1.x, pt1.y, pt2.x, pt2.y);
-            linearGrad.addColorStop(0, hexToRGBA(c1_hex, WEDGE_FILL_OPACITY));
-            linearGrad.addColorStop(1, hexToRGBA(c2_hex, WEDGE_FILL_OPACITY));
-            
-            // To achieve the segment blending smoothly across the points, we use the linear gradient for the fill style
-            // while the polygon path defines the shape.
+            // Create a gradient that transitions from color1 to color2 across the segment
+            const gradient = createSegmentGradient(ctx, cx, cy, pt1, pt2, color1, color2);
             
             ctx.beginPath();
             ctx.moveTo(cx, cy);
@@ -88,29 +76,15 @@ const segmentedFillPlugin = {
             ctx.lineTo(pt2.x, pt2.y);
             ctx.closePath();
             
-            // For a smooth *color* transition between points:
-            // This is complex in Chart.js; a simple linear gradient across the segment is the best approximation.
-            // For a smooth *center-to-edge* transition (transparency):
-            // We'll stick to the solid color defined by the dataset's point color to maintain the polygon shape outline.
-            // Since the user asked for "smooth transition" and "colors should be a gradience," and "as transparent as they are in single color mode," 
-            // the simple solid fill with transparency works best to avoid complexity while meeting the transparency requirement.
-            
-            // Revert to solid fill with axis color and requested transparency for simplicity and cross-point blending
-            // The segment fill logic is primarily to allow different colors per segment.
-            
-            // The radial gradient from the center to the point is the true "smooth transition" requested:
-            const radialGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, dataset.data[i] * r.getDistanceForValue(10) / 10);
-            radialGrad.addColorStop(0, hexToRGBA(c1_hex, 0.0));
-            radialGrad.addColorStop(1, hexToRGBA(c1_hex, DEFAULT_FILL_OPACITY));
-
-            ctx.fillStyle = radialGrad; // Use the radial gradient for the fill
+            ctx.fillStyle = gradient; // Use the gradient
             ctx.fill();
         }
+
         ctx.restore();
     },
 };
 
-// Fixed pale background for overlay chart (independent of ability color)
+// Plugin for background and spokes
 const radarGridPlugin = {
     id: 'customPentagonBackground',
     beforeDatasetsDraw(chart) {
@@ -120,11 +94,10 @@ const radarGridPlugin = {
         const cx = r.xCenter, cy = r.yCenter, radius = r.drawingArea;
         const N = chart.data.labels.length, start = -Math.PI / 2;
 
-        // ✅ Use fixed colors for the overlay chart background
         const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
         gradient.addColorStop(0, '#f8fcff');
-        gradient.addColorStop(0.33, FIXED_BACKGROUND_INNER_COLOR);
-        gradient.addColorStop(1, FIXED_BACKGROUND_OUTER_COLOR);
+        gradient.addColorStop(0.33, chartColor);
+        gradient.addColorStop(1, chartColor);
 
         ctx.save();
         ctx.beginPath();
@@ -147,7 +120,6 @@ const radarGridPlugin = {
         const N = chart.data.labels.length, start = -Math.PI / 2;
 
         ctx.save();
-        // spokes
         ctx.beginPath();
         for (let i = 0; i < N; i++) {
             const a = start + (i * 2 * Math.PI / N);
@@ -160,7 +132,6 @@ const radarGridPlugin = {
         ctx.lineWidth = 1;
         ctx.stroke();
 
-        // outer border
         ctx.beginPath();
         for (let i = 0; i < N; i++) {
             const a = start + (i * 2 * Math.PI / N);
@@ -176,7 +147,6 @@ const radarGridPlugin = {
     }
 };
 
-// Keep chart center fixed when requested
 const fixedCenterPlugin = {
     id: 'fixedCenter',
     beforeLayout(chart) {
@@ -190,7 +160,6 @@ const fixedCenterPlugin = {
     }
 };
 
-// Outlined axis labels (defense/speed moved up on overlay)
 const outlinedLabelsPlugin = {
     id: 'outlinedLabels',
     afterDraw(chart) {
@@ -214,13 +183,7 @@ const outlinedLabelsPlugin = {
             const angle = base + (i * 2 * Math.PI / labels.length);
             const x = cx + baseRadius * Math.cos(angle);
             let y = cy + baseRadius * Math.sin(angle);
-
-            // ✅ Move Speed (i=1) & Defense (i=4) up ONLY on overlay chart (radarChart2)
-            if (chart.config.options.customBackground.enabled && (i === 1 || i === 4)) {
-                y -= 25;
-            }
             if (i === 0) y -= 5;
-
             ctx.strokeText(label, x, y);
             ctx.fillText(label, x, y);
         });
@@ -228,7 +191,6 @@ const outlinedLabelsPlugin = {
     }
 };
 
-// Value labels for main chart only (not overlay)
 const inputValuePlugin = {
     id: 'inputValuePlugin',
     afterDraw(chart) {
@@ -255,7 +217,6 @@ const inputValuePlugin = {
             const angle = base + (i * 2 * Math.PI / labels.length);
             const x = cx + (baseRadius + offset) * Math.cos(angle);
             let y = cy + (baseRadius + offset) * Math.sin(angle);
-
             if (i === 0) y -= 20;
             else if (i === 1) y += 10;
             else if (i === 4) y += 10;
@@ -268,26 +229,6 @@ const inputValuePlugin = {
     }
 };
 
-// ✅ "AS" watermark plugin (5% opacity, bottom-left of the chartArea)
-const watermarkPlugin = {
-    id: 'watermarkPlugin',
-    afterDraw(chart) {
-        if (!chart.config.options.customBackground.enabled) return; // Only for overlay chart
-        const ctx = chart.ctx;
-        const { chartArea } = chart;
-        
-        ctx.save();
-        ctx.globalAlpha = 0.05;
-        ctx.font = '12px Candara';
-        ctx.fillStyle = '#000';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'bottom';
-        // Positioned 10px from the left and 10px from the bottom of the chart area
-        ctx.fillText('AS', chartArea.left + 10, chartArea.bottom - 10);
-        ctx.restore();
-    }
-};
-
 /* === CHART CREATOR === */
 function makeRadar(ctx, showPoints = true, withBackground = false, fixedCenter = null) {
     const plugins = [
@@ -295,8 +236,7 @@ function makeRadar(ctx, showPoints = true, withBackground = false, fixedCenter =
         radarGridPlugin,
         outlinedLabelsPlugin,
         inputValuePlugin,
-        segmentedFillPlugin,
-        watermarkPlugin
+        segmentedFillPlugin
     ];
 
     return new Chart(ctx, {
@@ -331,8 +271,7 @@ function makeRadar(ctx, showPoints = true, withBackground = false, fixedCenter =
             customBackground: { enabled: withBackground },
             fixedCenter: { enabled: !!fixedCenter, centerX: fixedCenter?.x, centerY: fixedCenter?.y },
             abilityColor: chartColor,
-            // segmentedFill: enabled is controlled in updateCharts()
-            plugins: { legend: { display: false }, segmentedFill: { enabled: false } } 
+            plugins: { legend: { display: false }, segmentedFill: { enabled: false } }
         },
         plugins: plugins
     });
@@ -379,7 +318,6 @@ window.addEventListener('load', () => {
     const ctx1 = document.getElementById('radarChart1').getContext('2d');
     radar1 = makeRadar(ctx1, true, false);
 
-    // Initial setting of axis colors to match ability color
     Object.values(axisColors).forEach(input => {
         input.value = chartColor;
     });
@@ -398,7 +336,7 @@ function updateCharts() {
     ];
 
     const maxVal = Math.max(...vals, 10);
-    const scaleMultiplier = 1.0;
+    const scaleMultiplier = 1.0; // adjust if needed (1.2 = slightly larger)
     const scaledVals = vals.map(v => v * scaleMultiplier);
 
     chartColor = colorPicker.value || chartColor;
@@ -409,28 +347,24 @@ function updateCharts() {
         if (!chart) return;
         chart.options.scales.r.max = i === 0 ? maxVal : 10;
         chart.options.abilityColor = chartColor;
-        // The data for the overlay (radar2) is capped at 10
-        chart.data.datasets[0].data = i === 0 ? scaledVals : capped; 
+        chart.data.datasets[0].data = i === 0 ? scaledVals : capped;
 
-        // Fixed styling for grid/lines/points
         chart.options.scales.r.angleLines.color = FIXED_SPOKE_COLOR;
         chart.data.datasets[0].borderColor = FIXED_BORDER_COLOR;
         chart.data.datasets[0].pointBorderColor = FIXED_BORDER_COLOR;
 
         if (isMulticolor) {
             chart.options.plugins.segmentedFill.enabled = true;
-            // ✅ Set background to fully transparent in multicolor mode
+            // Set background to transparent when using the segmented fill plugin
             chart.data.datasets[0].backgroundColor = 'rgba(0,0,0,0)'; 
         } else {
             chart.options.plugins.segmentedFill.enabled = false;
-            // Reset axis colors for single color mode if not user-selected
             Object.values(axisColors).forEach(input => {
                 if (!input.dataset.userSelected) {
                     input.value = chartColor;
                 }
             });
-            // Set background to solid fill with opacity in single color mode
-            chart.data.datasets[0].backgroundColor = solidFill; 
+            chart.data.datasets[0].backgroundColor = solidFill;
         }
 
         chart.update();
@@ -453,16 +387,11 @@ Object.values(axisColors).forEach(input => {
 
 colorPicker.addEventListener('input', () => {
     chartColor = colorPicker.value;
-    // ✅ If in multicolor mode, selecting ability color automatically changes ALL wedges
-    // The dataset.userSelected flag prevents this from overriding *truly* custom axis colors 
-    // when in single color mode, but the request implies overriding them in multicolor mode.
-    Object.values(axisColors).forEach(input => {
-        if (!input.dataset.userSelected || isMulticolor) { // Apply to all if multicolor is active
-            input.value = chartColor;
-            input.dataset.userSelected = false; // Reset flag so they all track ability color
-        }
-    });
-
+    if (!isMulticolor) {
+        Object.values(axisColors).forEach(input => {
+            if (!input.dataset.userSelected) input.value = chartColor;
+        });
+    }
     updateCharts();
 });
 
@@ -487,7 +416,7 @@ multiBtn.addEventListener('click', () => {
         multiBtn.textContent = 'Multicolor';
         axisColorInputs.forEach(input => input.classList.add('hidden'));
         Object.values(axisColors).forEach(input => {
-            input.value = chartColor; // Revert all to ability color
+            input.value = chartColor;
             input.dataset.userSelected = false;
         });
     }
@@ -511,8 +440,7 @@ viewBtn.addEventListener('click', () => {
         const ctx2 = document.getElementById('radarChart2').getContext('2d');
         if (!radar2Ready) {
             const center = { x: targetSize / 2, y: targetSize / 2 };
-            // Pass true for withBackground to enable custom background/watermark/label movement
-            radar2 = makeRadar(ctx2, false, true, center); 
+            radar2 = makeRadar(ctx2, false, true, center);
             radar2Ready = true;
         } else {
             radar2.resize();
