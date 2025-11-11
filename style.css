@@ -282,14 +282,14 @@ button:hover {
   z-index: 10;
 }
 
-/* Watermark (AS) */
+/* Watermark (AS) — lighter */
 .img-watermark {
   position: absolute;
   bottom: 10px;
   left: 12px;
   font-size: 12px;
   font-weight: bold;
-  color: rgba(0, 0, 0, 0.12);
+  color: rgba(0, 0, 0, 0.07);
   z-index: 20;
   pointer-events: none;
   user-select: none;
