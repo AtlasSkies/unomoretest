@@ -260,6 +260,8 @@ button:hover {
   cursor: pointer;
 }
 
+/* === Overlay Image + Watermark + Text box fixes === */
+
 .image-section {
   display: flex;
   flex-direction: column;
@@ -270,32 +272,34 @@ button:hover {
 .overlay-img-wrap {
   position: relative;
   display: inline-block;
-  z-index: 15;
+  z-index: 5;
 }
 
 .overlay-img {
-  width: 300px; height: 300px;
+  width: 300px;
+  height: 300px;
   object-fit: cover;
   border: 3px solid #493e3b;
   border-radius: 6px;
   position: relative;
-  z-index: 10;
+  z-index: 5;
 }
 
-/* Watermark (AS) — lighter */
+/* Watermark (AS) — subtle but visible */
 .img-watermark {
   position: absolute;
-  bottom: 10px;
-  left: 12px;
+  bottom: 12px;
+  left: 14px;
   font-size: 12px;
   font-weight: bold;
-  color: rgba(0, 0, 0, 0.07);
-  z-index: 20;
+  color: rgba(0, 0, 0, 0.05); /* 5% opacity */
+  z-index: 6;
   pointer-events: none;
   user-select: none;
   letter-spacing: 1px;
 }
 
+/* Character info box now always on top */
 .text-box {
   position: absolute;
   bottom: -45px;
@@ -305,6 +309,7 @@ button:hover {
   padding: 10px;
   font-family: 'Carlito';
   text-align: center;
+  z-index: 10;
 }
 
 .overlay-chart {
