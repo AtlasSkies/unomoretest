@@ -32,11 +32,15 @@
       <input type="file" accept="image/*" id="imgInput" />
       <img id="uploadedImg" class="upload-img" alt="Uploaded Image" />
 
-      <div class="inputs">
-        <label><i>Name:</i> <input type="text" id="nameInput" /></label>
-        <label><i>Ability:</i> <input type="text" id="abilityInput" /></label>
-        <label><i>Level:</i> <input type="text" id="levelInput" /></label>
+      <!-- === Info Box === -->
+      <div class="info-box">
+        <label><b>Name:</b> <input type="text" id="nameInput" class="white-input" /></label>
+        <label><b>Ability:</b> <input type="text" id="abilityInput" class="white-input" /></label>
+        <label><b>Level:</b> <input type="text" id="levelInput" class="white-input" /></label>
+      </div>
 
+      <!-- === Ability Inputs === -->
+      <div class="inputs">
         <label><i>Power:</i> <input type="number" id="powerInput" step="0.1" min="0" /></label>
         <label><i>Speed:</i> <input type="number" id="speedInput" step="0.1" min="0" /></label>
         <label><i>Trick:</i> <input type="number" id="trickInput" step="0.1" min="0" /></label>
@@ -64,7 +68,7 @@
     <div class="chart-area" id="chartArea"></div>
   </div>
 
-  <!-- Overlay -->
+  <!-- === Overlay Popup === -->
   <div id="overlay" class="overlay hidden">
     <div id="characterBox" class="character-box">
       <button id="closeBtn" class="close-btn">×</button>
@@ -73,6 +77,8 @@
         <div class="overlay-img-wrap">
           <img id="overlayImg" class="overlay-img" alt="Character Image" />
           <div class="img-watermark">AS</div>
+
+          <!-- Overlay text box -->
           <div class="text-box">
             <i><b>Name:</b> <span id="overlayName">-</span><br />
             <b>Ability:</b> <span id="overlayAbility">-</span><br />
