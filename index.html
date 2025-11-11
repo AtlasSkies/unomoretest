@@ -32,28 +32,26 @@
       <input type="file" accept="image/*" id="imgInput" />
       <img id="uploadedImg" class="upload-img" alt="Uploaded Image" />
 
-      <div class="info-box">
-        <label><b>Name:</b> <input type="text" id="nameInput" /></label>
-        <label><b>Ability:</b> <input type="text" id="abilityInput" /></label>
-        <label><b>Level:</b> <input type="text" id="levelInput" /></label>
-      </div>
-
       <div class="inputs">
-        <label>Power: <input type="number" id="powerInput" step="0.1" min="0" /></label>
-        <label>Speed: <input type="number" id="speedInput" step="0.1" min="0" /></label>
-        <label>Trick: <input type="number" id="trickInput" step="0.1" min="0" /></label>
-        <label>Recovery: <input type="number" id="recoveryInput" step="0.1" min="0" /></label>
-        <label>Defense: <input type="number" id="defenseInput" step="0.1" min="0" /></label>
+        <label><i>Name:</i> <input type="text" id="nameInput" /></label>
+        <label><i>Ability:</i> <input type="text" id="abilityInput" /></label>
+        <label><i>Level:</i> <input type="text" id="levelInput" /></label>
 
-        <label>Ability Color: <input type="color" id="colorPicker" value="#92dfec" /></label>
+        <label><i>Power:</i> <input type="number" id="powerInput" step="0.1" min="0" /></label>
+        <label><i>Speed:</i> <input type="number" id="speedInput" step="0.1" min="0" /></label>
+        <label><i>Trick:</i> <input type="number" id="trickInput" step="0.1" min="0" /></label>
+        <label><i>Recovery:</i> <input type="number" id="recoveryInput" step="0.1" min="0" /></label>
+        <label><i>Defense:</i> <input type="number" id="defenseInput" step="0.1" min="0" /></label>
+
+        <label><i>Ability Color:</i> <input type="color" id="colorPicker" value="#92dfec" /></label>
 
         <button id="multiColorBtn">Multi-color</button>
         <div id="axisColors">
-          <label>Power Color: <input type="color" id="powerColor" value="#92dfec" /></label>
-          <label>Speed Color: <input type="color" id="speedColor" value="#92dfec" /></label>
-          <label>Trick Color: <input type="color" id="trickColor" value="#92dfec" /></label>
-          <label>Recovery Color: <input type="color" id="recoveryColor" value="#92dfec" /></label>
-          <label>Defense Color: <input type="color" id="defenseColor" value="#92dfec" /></label>
+          <label><i>Power Color:</i> <input type="color" id="powerColor" value="#92dfec" /></label>
+          <label><i>Speed Color:</i> <input type="color" id="speedColor" value="#92dfec" /></label>
+          <label><i>Trick Color:</i> <input type="color" id="trickColor" value="#92dfec" /></label>
+          <label><i>Recovery Color:</i> <input type="color" id="recoveryColor" value="#92dfec" /></label>
+          <label><i>Defense Color:</i> <input type="color" id="defenseColor" value="#92dfec" /></label>
         </div>
 
         <button id="addChartBtn">Add Chart</button>
@@ -75,11 +73,11 @@
         <div class="overlay-img-wrap">
           <img id="overlayImg" class="overlay-img" alt="Character Image" />
           <div class="img-watermark">AS</div>
-        </div>
-        <div class="text-box">
-          <b>Name:</b> <span id="overlayName">-</span><br />
-          <b>Ability:</b> <span id="overlayAbility">-</span><br />
-          <b>Level:</b> <span id="overlayLevel">-</span>
+          <div class="text-box">
+            <i><b>Name:</b> <span id="overlayName">-</span><br />
+            <b>Ability:</b> <span id="overlayAbility">-</span><br />
+            <b>Level:</b> <span id="overlayLevel">-</span></i>
+          </div>
         </div>
       </div>
 
