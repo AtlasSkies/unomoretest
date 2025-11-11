@@ -1,6 +1,4 @@
-/* ============================
-   LOCAL CARLITO FONT FAMILY
-============================ */
+/* === GLOBAL FONT === */
 @font-face {
   font-family: 'Carlito';
   src: url('./fonts/Carlito-Regular.ttf') format('truetype');
@@ -13,22 +11,7 @@
   font-weight: 700;
   font-style: normal;
 }
-@font-face {
-  font-family: 'Carlito';
-  src: url('./fonts/Carlito-Italic.ttf') format('truetype');
-  font-weight: 400;
-  font-style: italic;
-}
-@font-face {
-  font-family: 'Carlito';
-  src: url('./fonts/Carlito-BoldItalic.ttf') format('truetype');
-  font-weight: 700;
-  font-style: italic;
-}
 
-/* ============================
-   GLOBAL STYLES
-============================ */
 body {
   font-family: 'Carlito', 'Optima', 'Avenir', 'Helvetica Neue', Arial, sans-serif;
   background: #f0f8fc;
@@ -40,305 +23,105 @@ body {
   color: #333;
 }
 
-.container {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 30px;
-  max-width: 1200px;
-  width: 100%;
-}
+/* --- Structure --- */
+.container { display: flex; flex-wrap: wrap; gap: 30px; }
+.left { display: flex; flex-direction: column; align-items: center; gap: 15px; }
+h1 { font-style: italic; color: #333; margin: 0; text-align: center; }
+.subtitle { font-style: italic; font-size: 14px; color: #666; margin-top: -5px; }
 
-.left {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-  min-width: 300px;
-}
-
-.header-with-info {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 10px;
-}
-
-.title-block {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-h1 {
-  text-align: center;
-  font-style: italic;
-  color: #333;
-  margin: 0;
-}
-
-.subtitle {
-  font-style: italic;
-  font-size: 14px;
-  color: #666;
-  margin-top: -5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-}
-
-/* Tooltip container for the "i" */
-.info-container {
-  position: relative;
-  display: inline-block;
-}
-
-.info-icon {
-  font-style: normal;
-  margin-left: 6px;
-  cursor: pointer;
-  font-size: 15px;
-  color: #4e4e4e;
-  transition: color 0.2s ease;
-}
-
-.info-icon:hover {
-  color: #8747e6;
-}
-
-/* Tooltip content */
+/* Tooltip */
+.info-container { position: relative; display: inline-block; }
+.info-icon { margin-left: 6px; cursor: pointer; font-size: 15px; color: #4e4e4e; transition: color 0.2s; }
+.info-icon:hover { color: #8747e6; }
 .tooltip {
   position: absolute;
-  top: 125%;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #ffffff;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  padding: 8px 12px;
-  width: 250px;
-  font-size: 12px;
-  color: #333;
-  text-align: center;
-  white-space: normal;
-  visibility: hidden;
-  opacity: 0;
-  transition: opacity 0.3s, transform 0.3s;
-  z-index: 10;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  top: 125%; left: 50%; transform: translateX(-50%);
+  background: white; border: 1px solid #ccc; border-radius: 8px;
+  padding: 8px 12px; width: 250px; font-size: 12px; color: #333;
+  visibility: hidden; opacity: 0; transition: opacity 0.3s;
+  z-index: 10; text-align: center;
 }
+.info-container:hover .tooltip { visibility: visible; opacity: 1; transform: translate(-50%, 5px); }
 
-.info-container:hover .tooltip {
-  visibility: visible;
-  opacity: 1;
-  transform: translate(-50%, 5px);
-}
+/* Upload */
+.upload-img { width: 230px; height: 230px; border: 2px dashed #aaa; border-radius: 10px; object-fit: cover; background: white; }
 
-.upload-img {
-  width: clamp(180px, 25vw, 250px);
-  height: clamp(180px, 25vw, 250px);
-  border: 2px dashed #aaa;
-  border-radius: 10px;
-  object-fit: cover;
-  background-color: white;
-}
+/* Inputs */
+.info-box, .inputs { display: flex; flex-direction: column; align-items: center; gap: 6px; background: white; border-radius: 8px; padding: 10px; }
+button { background: #92dfec; border: none; border-radius: 6px; padding: 6px 12px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+button:hover { background: #6db5c0; color: white; }
 
-.info-box {
-  background-color: white;
-  border-radius: 8px;
-  padding: 8px 12px;
-  width: clamp(180px, 25vw, 250px);
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
+.chart-area { position: relative; width: 400px; height: 400px; }
 
-.info-box label {
-  display: flex;
-  justify-content: space-between;
-  font-weight: bold;
-  font-size: 15px;
-}
-
-.inputs {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  align-items: center;
-}
-
-label {
-  font-style: italic;
-  font-size: 15px;
-  display: flex;
-  justify-content: space-between;
-  width: clamp(200px, 80%, 260px);
-}
-
-input[type="number"], input[type="text"] {
-  width: 110px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  padding: 4px;
-  font-family: 'Carlito';
-}
-
-input[type="color"] {
-  border: none;
-  background: none;
-  width: 60px;
-  height: 40px;
-  cursor: pointer;
-}
-
-button {
-  margin-top: 8px;
-  padding: 6px 12px;
-  font-family: 'Carlito';
-  font-weight: bold;
-  background-color: #92dfec;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-button:hover {
-  background-color: #6db5c0;
-  color: white;
-}
-
-.chart-area {
-  position: relative;
-  width: clamp(300px, 40vw, 500px);
-  height: clamp(300px, 40vw, 500px);
-}
-
-#axisColors {
-  display: none;
-  flex-direction: column;
-  gap: 4px;
-  align-items: center;
-}
-
+/* === Overlay === */
 .overlay {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(0,0,0,0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex; justify-content: center; align-items: center;
   z-index: 10;
 }
-
 .hidden { display: none; }
-
 .character-box {
-  background: #fff;
-  width: 52vw; height: 64vh;
-  border-radius: 15px;
-  position: relative;
-  color: #000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 40px;
-  overflow: hidden;
-  padding: 20px;
+  background: #fff; border-radius: 15px; display: flex; align-items: center; justify-content: center;
+  gap: 40px; padding: 20px; width: 52vw; height: 64vh; position: relative;
 }
+.close-btn { position: absolute; top: 10px; right: 15px; font-size: 28px; background: none; border: none; cursor: pointer; }
 
-.close-btn {
-  position: absolute;
-  top: 10px; right: 15px;
-  font-size: 28px;
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-
-/* === Overlay Image + Watermark + Text box fixes === */
-
+/* === Image + Watermark + Text Box Fix === */
 .image-section {
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
+  z-index: 1;
+  padding-bottom: 55px;
 }
 
-.overlay-img-wrap {
-  position: relative;
-  display: inline-block;
-  z-index: 5;
-}
-
+/* image lowest */
+.overlay-img-wrap { position: relative; display: inline-block; z-index: 1; }
 .overlay-img {
-  width: 300px;
-  height: 300px;
+  width: 300px; height: 300px;
   object-fit: cover;
   border: 3px solid #493e3b;
   border-radius: 6px;
-  position: relative;
-  z-index: 5;
+  z-index: 1;
 }
 
-/* Watermark (AS) — subtle but visible */
+/* Watermark */
 .img-watermark {
   position: absolute;
-  bottom: 12px;
-  left: 14px;
+  bottom: 10px; left: 12px;
   font-size: 12px;
   font-weight: bold;
-  color: rgba(0, 0, 0, 0.05); /* 5% opacity */
-  z-index: 6;
+  color: rgba(0, 0, 0, 0.07);
+  z-index: 2;
   pointer-events: none;
   user-select: none;
   letter-spacing: 1px;
 }
 
-/* Character info box now always on top */
+/* Text Box Above All */
 .text-box {
   position: absolute;
-  bottom: -45px;
+  bottom: -35px;
   width: 80%;
   background: white;
-  border: 3px solid #493e3b;
-  padding: 10px;
-  font-family: 'Carlito';
+  border: 2px solid #493e3b;
+  border-radius: 4px;
+  padding: 6px;
   text-align: center;
-  z-index: 10;
+  z-index: 3;
+  font-size: 13px;
+  line-height: 1.2;
 }
 
 .overlay-chart {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: clamp(280px, 40vw, 450px);
-  height: clamp(280px, 40vw, 450px);
+  display: flex; justify-content: center; align-items: center;
+  width: 400px; height: 400px; z-index: 0;
 }
 
 #downloadBtn {
-  position: absolute;
-  bottom: 10px; right: 10px;
-  background: #92dfec;
-  border: none; border-radius: 5px;
-  padding: 6px 10px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-@media (max-width: 768px) {
-  .character-box {
-    flex-direction: column;
-    width: 90vw; max-height: 90vh;
-    padding: 15px; gap: 20px;
-    overflow-y: auto;
-  }
-
-  .overlay-img {
-    width: 70vw; height: auto; max-height: 35vh;
-  }
+  position: absolute; bottom: 10px; right: 10px;
+  background: #92dfec; border: none; border-radius: 5px;
+  padding: 6px 10px; cursor: pointer; font-weight: bold;
 }
