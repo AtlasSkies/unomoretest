@@ -309,11 +309,11 @@ button:hover {
   text-align: center;
 }
 
-/* ✅ 25% larger radar chart in popup */
+/* ✅ Popup radar chart — expands downward */
 .overlay-chart {
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;   /* ⬅ stays at top, grows downward */
   width: clamp(260px, 37.5vw, 425px);
   height: clamp(260px, 37.5vw, 425px);
 }
